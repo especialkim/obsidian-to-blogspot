@@ -3,11 +3,14 @@ import { MyPluginSettings } from './settings';
 import { ImgurService } from './imgurService';
 import { MermaidService } from './mermaidService';
 import { D2Service } from './d2Service';
+import { MakeLinkedDataSet } from './makeLinkedDataSet';
+import { LinkDataSet, PreprocessResult } from './types';
 
 export class MarkdownPreprocessing {
     private imgurService: ImgurService; // Add this line
     private mermaidService: MermaidService;
     private d2Service: D2Service;
+    private makeLinkedDataSet: MakeLinkedDataSet;
 
     constructor(
         private app: App, 
@@ -16,18 +19,18 @@ export class MarkdownPreprocessing {
         this.imgurService = new ImgurService(this.app.vault, this.settings); // settings 인수 전달
         this.mermaidService = new MermaidService(this);
         this.d2Service = new D2Service(this);
+        this.makeLinkedDataSet = new MakeLinkedDataSet(this.app, this.settings);
     }
 
-    async preprocess(content: string): Promise<string> {
+    async preprocess(content: string): Promise<{ content: string; linkDataSet: LinkDataSet }> {
         content = this.removeFrontmatter(content);
         content = this.trimContent(content);
         content = await this.processImageLinks(content);
         content = await this.processInternalLinks(content);
         content = await this.processCodeblocks(content);
-        content = this.processObsidianSyntax(content); // Add this line
-        // content 와 metadata 를 반환하도록 해야 함, 
-        // metadata는 백링크, 아웃링크, Resource(!표가 없는 링크), 라벨(태그), 카테고리, 문서번호 등임
-        return content;
+        content = this.processObsidianSyntax(content);
+        const linkDataSet = this.makeLinkedDataSet.makeConnectionDataSet();
+        return { content, linkDataSet };
     }
 
     private removeFrontmatter(content: string): string {
@@ -131,7 +134,7 @@ export class MarkdownPreprocessing {
         return content;
     }
 
-    private async processMarkdownLink(filePath: string, linkText: string): Promise<string> {
+    public async processMarkdownLink(filePath: string, linkText: string): Promise<string> {
         const file = this.app.vault.getAbstractFileByPath(filePath);
 
         if (file instanceof TFile) {

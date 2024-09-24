@@ -22,9 +22,13 @@ export interface MyPluginSettings {
     dateFormat: string; // 추가된 필드
     dateLanguage: 'ko' | 'en'; // 추가된 필드
     openBrowserAfterPublish: boolean; // 추가된 필드
-    displayBacklinksAndOutlinks: boolean; // 추가된 필드
-    labelPrefix: string; // 추가된 필드
+    makeLinksDataSet: boolean; // 추가된 필드
+    labelPrefixes: string; // 추가된 필드
     cssFilePath: string; // 추가된 필드
+    useOutlinksForLabels: boolean; // 추가된 필드
+    excludeLinkExtensions: string; // 추가된 필드
+    includeLinkPrefixes: string; // 추가된 필드
+    excludeTagsContaining: string; // 추가된 필드
 }
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
@@ -43,9 +47,13 @@ export const DEFAULT_SETTINGS: MyPluginSettings = {
     dateFormat: '', // 기본값 설정
     dateLanguage: 'en', // 기본값 설정
     openBrowserAfterPublish: false, // 기본값 설정
-    displayBacklinksAndOutlinks: false, // 기본값 설정
-    labelPrefix: '', // 기본값 설정
+    makeLinksDataSet: false, // 기본값 설정
+    labelPrefixes: '', // 기본값 설정
     cssFilePath: '', // 기본값 설정
+    useOutlinksForLabels: false, // 기본값 설정
+    excludeTagsContaining: '', // 기본값 설정
+    excludeLinkExtensions: '', // 기본값 설정
+    includeLinkPrefixes: '', // 기본값 설정
 }
 
 export class SampleSettingTab extends PluginSettingTab {
@@ -251,29 +259,75 @@ export class SampleSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        containerEl.createEl('h2', {text: 'Etc', cls: 'obsidian-to-blogger'});
+        containerEl.createEl('h2', {text: 'Links Data Set', cls: 'obsidian-to-blogger'});
+
+        new Setting(containerEl)
+        .setName('Make Links Data Set')
+        .setDesc('Choose whether to create a dataset for organizing backlinks, outlinks, references, and labels in the post')
+        .addToggle(toggle => toggle
+            .setValue(this.plugin.settings.makeLinksDataSet)
+            .onChange(async (value) => {
+                this.plugin.settings.makeLinksDataSet = value;
+                await this.plugin.saveSettings();
+            }));
+
+        new Setting(containerEl)
+        .setName('Label Source Selection')
+        .setDesc('Choose whether to use tags or outlinks for labels in the post (OFF = tags, ON = outlinks filtered by Label Link Prefix)')
+        .addToggle(toggle => toggle
+            .setValue(this.plugin.settings.useOutlinksForLabels)
+            .onChange(async (value) => {
+                this.plugin.settings.useOutlinksForLabels = value;
+                await this.plugin.saveSettings();
+            }));
+
+        new Setting(containerEl)
+        .setName('Exclude Tags Containing Text')
+        .setDesc('Enter text to exclude tags that contain it, separated by commas')
+        .addText(text => text
+            .setPlaceholder('e.g., exclude1,exclude2')
+            .setValue(this.plugin.settings.excludeTagsContaining)
+            .onChange(async (value) => {
+                this.plugin.settings.excludeTagsContaining = value;
+                await this.plugin.saveSettings();
+            }));
 
         new Setting(containerEl)
             .setName('Label Link Prefix')
             .setDesc('Prefix to use for label links in the post, separated by commas')
             .addText(text => text
                 .setPlaceholder(')')
-                .setValue(this.plugin.settings.labelPrefix)
+                .setValue(this.plugin.settings.labelPrefixes)
                 .onChange(async (value) => {
-                    this.plugin.settings.labelPrefix = value;
+                    this.plugin.settings.labelPrefixes = value;
                     await this.plugin.saveSettings();
                 }));
+        
+        new Setting(containerEl)
+        .setName('Excluded Link Extensions')
+        .setDesc('Enter the extensions to exclude from links, separated by commas')
+        .addText(text => text
+            .setPlaceholder('e.g., jpg,png,txt')
+            .setValue(this.plugin.settings.excludeLinkExtensions)
+            .onChange(async (value) => {
+                this.plugin.settings.excludeLinkExtensions = value;
+                await this.plugin.saveSettings();
+            }));
 
         new Setting(containerEl)
-        .setName('Display Backlinks and Outlinks')
-        .setDesc('Choose whether to display backlinks and outlinks in the post')
-        .addToggle(toggle => toggle
-            .setValue(this.plugin.settings.displayBacklinksAndOutlinks)
+        .setName('Include Link Prefixes')
+        .setDesc('Enter the prefixes to include for links, separated by commas')
+        .addText(text => text
+            .setPlaceholder('e.g., prefix1,prefix2')
+            .setValue(this.plugin.settings.includeLinkPrefixes)
             .onChange(async (value) => {
-                this.plugin.settings.displayBacklinksAndOutlinks = value;
+                this.plugin.settings.includeLinkPrefixes = value;
                 await this.plugin.saveSettings();
             }));
         
+
+        
+        containerEl.createEl('h2', {text: 'Etc', cls: 'obsidian-to-blogger'});
 
         new Setting(containerEl)
         .setName('Open Browser After Publish')

@@ -2,6 +2,7 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
 import { MyPluginSettings, DEFAULT_SETTINGS, SampleSettingTab } from './src/settings';
 import { GoogleOauth } from './src/googleOauth';
 import { MarkdownToHtml } from './src/markdownToHtml';
+import { MakeLinkedDataSet } from './src/makeLinkedDataSet';
 
 // 이 클래스와 인터페이스의 이름을 바꾸는 것을 잊지 마세요!
 
@@ -9,6 +10,7 @@ export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	googleOauth: GoogleOauth;
 	markdownToHtml: MarkdownToHtml;
+	makeLinkedDataSet: MakeLinkedDataSet;
 
 	async onload() {
 		await this.loadSettings();
@@ -19,21 +21,30 @@ export default class MyPlugin extends Plugin {
 		// GoogleOauth 인스턴스 생성
 		this.googleOauth = new GoogleOauth(this.settings, this.app.vault, this.app);
 
-		// Get Google Auth Token 명령어 추가
+		// MarkdownToHtml 인스턴스 생성
+		this.markdownToHtml = new MarkdownToHtml(this.app, this.settings);
+
+		// MakeLinkedDataSet 인스턴스 생성
+		this.makeLinkedDataSet = new MakeLinkedDataSet(this.app, this.settings);
+
+		// Get Google Auth Token ��령어 추가
 		this.addCommand({
 			id: 'get-google-auth-token',
 			name: 'Get Google Auth Token',
 			callback: () => this.googleOauth.getGoogleAuthToken(),
 		});
 
-		// MarkdownToHtml 인스턴스 생성
-		this.markdownToHtml = new MarkdownToHtml(this.app, this.settings);
-
 		// Markdown to HTML 명령어 추가
 		this.addCommand({
 			id: 'markdown-to-html',
 			name: 'Markdown to HTML',
 			callback: () => this.markdownToHtml.convert(),
+		});
+
+		this.addCommand({
+			id: 'make-links-data-set',
+			name: 'Make Links Data Set',
+			callback: () => this.makeLinkedDataSet.makeConnectionDataSet(),
 		});
 	}
 
