@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import MyPlugin from '../main';
 
 export interface BlogInfo {
+    id: string; // 새로운 필드 추가
     url: string;
     alias: string;
 }
@@ -10,7 +11,7 @@ export interface MyPluginSettings {
 	mySetting: string;
 	credentialsFilePath: string; // 추가된 설정 필드
     tokenStoragePath: string;
-    blogId: string;
+    bloggerUserId: string;
     blogInfos: BlogInfo[]; // 새로운 필드
     imgurClientId: string; // 추가된 필드
     includeStartMarker: boolean; // 추가된 필드
@@ -29,14 +30,15 @@ export interface MyPluginSettings {
     excludeLinkExtensions: string; // 추가된 필드
     includeLinkPrefixes: string; // 추가된 필드
     excludeTagsContaining: string; // 추가된 필드
+    includeCssInPublish: boolean; // 추가된 필드
 }
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default',
 	credentialsFilePath: '', // 기본값 설정
     tokenStoragePath: '',
-    blogId: '',
-    blogInfos: [{ url: '', alias: '' }], // 기본값으로 빈 세트 하나 제공
+    bloggerUserId: '',
+    blogInfos: [{ id: '', url: '', alias: '' }], // 기본값으로 빈 세트 하나 제공
     imgurClientId: '', // 기본값 설정
     includeStartMarker: false, // 기본값 설정
     startMarker: '', // 기본값 설정
@@ -54,6 +56,7 @@ export const DEFAULT_SETTINGS: MyPluginSettings = {
     excludeTagsContaining: '', // 기본값 설정
     excludeLinkExtensions: '', // 기본값 설정
     includeLinkPrefixes: '', // 기본값 설정
+    includeCssInPublish: false, // 기본값 설정
 }
 
 export class SampleSettingTab extends PluginSettingTab {
@@ -118,13 +121,13 @@ export class SampleSettingTab extends PluginSettingTab {
         containerEl.createEl('h2', {text: 'Blog Information', cls: 'obsidian-to-blogger'});
 
         new Setting(containerEl)
-        .setName('Blog ID')
-        .setDesc('Enter your Blogger blog ID')
+        .setName('Blogger User ID')
+        .setDesc('Enter your Blogger user ID')
         .addText(text => text
-            .setPlaceholder('Enter your blog ID')
-            .setValue(this.plugin.settings.blogId)
+            .setPlaceholder('Enter your Blogger user ID')
+            .setValue(this.plugin.settings.bloggerUserId)
             .onChange(async (value) => {
-                this.plugin.settings.blogId = value;
+                this.plugin.settings.bloggerUserId = value;
                 await this.plugin.saveSettings();
             }));
 
@@ -139,7 +142,7 @@ export class SampleSettingTab extends PluginSettingTab {
             .addButton(button => button
                 .setButtonText('+')
                 .onClick(async () => {
-                    this.plugin.settings.blogInfos.push({ url: '', alias: '' });
+                    this.plugin.settings.blogInfos.push({ id: '', url: '', alias: '' });
                     await this.plugin.saveSettings();
                     this.display(); // 설정 화면 새로고침
                 })
@@ -220,6 +223,16 @@ export class SampleSettingTab extends PluginSettingTab {
                 .setValue(this.plugin.settings.htmlWrapClassName)
                 .onChange(async (value) => {
                     this.plugin.settings.htmlWrapClassName = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Include CSS in Publish')
+            .setDesc('Include CSS this setting when publishing to Blogger. If OFF, it will only apply during markdown to HTML conversion.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.includeCssInPublish)
+                .onChange(async (value) => {
+                    this.plugin.settings.includeCssInPublish = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -344,6 +357,13 @@ export class SampleSettingTab extends PluginSettingTab {
 	createBlogInfoSetting(container: HTMLElement, index: number): void {
 		const setting = new Setting(container)
 			.setName(`Blog Info ${index + 1}`)
+			.addText(text => text
+				.setPlaceholder('Blog ID')
+				.setValue(this.plugin.settings.blogInfos[index].id)
+				.onChange(async (value) => {
+					this.plugin.settings.blogInfos[index].id = value;
+					await this.plugin.saveSettings();
+				}))
 			.addText(text => text
 				.setPlaceholder('Blog URL')
 				.setValue(this.plugin.settings.blogInfos[index].url)

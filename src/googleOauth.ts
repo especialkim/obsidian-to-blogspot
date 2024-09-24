@@ -1,4 +1,4 @@
-import { Vault, App, Notice, Modal, Setting } from 'obsidian';
+import { Vault, App, Notice } from 'obsidian';
 import { MyPluginSettings } from './settings';
 import * as http from 'http';
 import { AddressInfo } from 'net';

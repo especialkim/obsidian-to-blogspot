@@ -79,8 +79,6 @@ export class MakeLinkedDataSet {
     }
 
     makeConnectionDataSet(): LinkDataSet {
-        console.log('here')
-
         const file = this.app.workspace.getActiveFile();
         if (!file) {
             new Notice('No active file found.');
@@ -115,10 +113,15 @@ export class MakeLinkedDataSet {
             .filter(link => link !== null)
             .join('\n');
         
-        const backlinksHeading = '<h3 class="hiddenlink-heading">Backlinks</h3>\n';
-        const outlinksHeading = '<h3 class="hiddenlink-heading">Outlinks</h3>\n';
+        const relatedLinksHeading = '<h2 class="hidden link-heading">Related Links</h2>\n';
+        const backlinksHeading = '<h3 class="hidden link-heading">Backlinks</h3>\n';
+        const outlinksHeading = '<h3 class="hidden link-heading">Outlinks</h3>\n';
         
         const sections = [];
+
+        if (backlinksHtml || outlinksHtml) {
+            sections.push(relatedLinksHeading);
+        }
         if (backlinksHtml) {
             sections.push(backlinksHeading + backlinksHtml);
         }

@@ -9,3 +9,12 @@ export interface PreprocessResult {
     content: string;
     linkDataSet: LinkDataSet;
 }
+
+export interface HtmlBundle {
+    title: string;
+    content: string;
+    labels: string[];
+    tags: string[];
+    hiddenLinks: string;
+}
+

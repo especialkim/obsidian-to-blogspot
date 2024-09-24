@@ -1,32 +1,54 @@
 import { marked } from 'marked';
-import { App, Notice } from 'obsidian';
+import { App, Notice, TFile } from 'obsidian';
 import { MarkdownPreprocessing } from './markdownPreprocessing';
 import { MyPluginSettings } from './settings';
 import { CalloutToHtml } from './calloutToHtml';
 import { MakeLinkedDataSet } from './makeLinkedDataSet';
+import { HtmlBundle } from './types';
+import { normalizePath } from 'obsidian';
 
 export class MarkdownToHtml {
 	private app: App;
 	private settings: MyPluginSettings;
     private markdownPreprocessing: MarkdownPreprocessing;
+	private includeCssInPublish: boolean;
 
 	constructor(app: App, settings: MyPluginSettings) {
 		this.app = app;
 		this.settings = settings;
 		this.markdownPreprocessing = new MarkdownPreprocessing(app, settings);
+		this.includeCssInPublish = this.settings.includeCssInPublish;
 	}
 
 	async convert() {
+		const bundle = await this.markdownToHtmlBundle();
+		const content = bundle.content;
+		const hiddenLinks = bundle.hiddenLinks;
+		let html = '';
+
+		if(this.settings.makeLinksDataSet){
+			html = content + hiddenLinks;
+		}else{
+			html = content;
+		}
+		
+		html = await this.makeHtmlDocument(html);
+		const fileName = await this.createHtmlFile(html);
+		await this.openHtmlFile(fileName);
+	}
+
+	async markdownToHtmlBundle(): Promise<HtmlBundle> {
 		const activeFile = this.app.workspace.getActiveFile();
 
         if (!activeFile) {
             new Notice('No active file found.');
-			return;
+			return { title: '', content: '', labels: [], tags: [], hiddenLinks: ''}; 
 		}
 
 		const fileContent = await this.app.vault.read(activeFile);
 		let { content, linkDataSet } = await this.markdownPreprocessing.preprocess(fileContent);
 
+		content = content.replace(/==([^=]+)==/g, '<mark>$1</mark>');
 		content = CalloutToHtml.process(content);
 		content = await this.convertToHtml(content);
 		content = this.restructureNestedLists(content);
@@ -37,21 +59,20 @@ export class MarkdownToHtml {
 			content = `<div class="${className}">${content}</div>`;
 		}
 
-		if (!this.settings.makeLinksDataSet){
-			console.log(content)
-			return content;
-		}
-
 		const title = activeFile.name;
 		const labels = linkDataSet.labels;
 		const tags = linkDataSet.tags;
 		const makeLinkedDataSet = new MakeLinkedDataSet(this.app, this.settings);
 		const hiddenLinks = makeLinkedDataSet.linkedDataSetToHiddenLinksHtml(linkDataSet);
 
-		console.log({title, content, labels, tags, hiddenLinks});
-		return {title, content, labels, tags, hiddenLinks};
+		if (this.settings.makeLinksDataSet){
+			content = content + hiddenLinks;
+		}
 
+		return {title, content, labels, tags, hiddenLinks};
 	}
+
+
 
 	private async convertToHtml(markdown: string): Promise<string> {
         try {
@@ -82,4 +103,60 @@ export class MarkdownToHtml {
             return `<div class="youtube-embed-wrapper"><iframe class="youtube-embed" src="${embedUrl}" title="${alt}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
         });
     }
+
+	private async makeHtmlDocument(htmlBody: string): Promise<string> {
+		return `
+		<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>Document</title>
+			<style>
+				${await this.getCssCode()}
+			</style>
+		</head>
+		<body>
+			${htmlBody}
+		</body>
+		</html>
+		`
+	}
+
+	private async getCssCode(): Promise<string> {
+		if(!this.includeCssInPublish){
+			return ''
+		}
+
+		const cssFile = this.app.vault.getAbstractFileByPath(this.settings.cssFilePath) as TFile;
+		const cssCode = await this.app.vault.read(cssFile);
+		return cssCode;
+	}
+
+	private async createHtmlFile(html: string): Promise<string> {
+		const fileName = 'output.html';
+		const filePath = normalizePath(fileName);
+		
+		console.log('filePath:', filePath);
+
+		try {
+			// Create or overwrite the HTML file in the vault
+			await this.app.vault.adapter.write(filePath, html);
+			console.log('File written successfully');
+		} catch (error) {
+			console.error('Error writing file:', error);
+		}
+
+		return fileName;
+	}
+
+	private async openHtmlFile(fileName: string): Promise<void> {
+		// Open the HTML file in the default browser
+		const file = this.app.vault.getAbstractFileByPath(fileName);
+		if (file) {
+			this.app.workspace.openLinkText(fileName, '', false, { active: true });
+		} else {
+			console.error('File not found:', fileName);
+		}
+	}
 }

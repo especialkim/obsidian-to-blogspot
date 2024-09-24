@@ -1,13 +1,15 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
+import { Plugin } from 'obsidian';
 import { MyPluginSettings, DEFAULT_SETTINGS, SampleSettingTab } from './src/settings';
 import { GoogleOauth } from './src/googleOauth';
 import { MarkdownToHtml } from './src/markdownToHtml';
 import { MakeLinkedDataSet } from './src/makeLinkedDataSet';
+import { BloggerService } from './src/bloggerService';
 
 // 이 클래스와 인터페이스의 이름을 바꾸는 것을 잊지 마세요!
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
+	bloggerService: BloggerService;
 	googleOauth: GoogleOauth;
 	markdownToHtml: MarkdownToHtml;
 	makeLinkedDataSet: MakeLinkedDataSet;
@@ -45,6 +47,16 @@ export default class MyPlugin extends Plugin {
 			id: 'make-links-data-set',
 			name: 'Make Links Data Set',
 			callback: () => this.makeLinkedDataSet.makeConnectionDataSet(),
+		});
+
+		this.addCommand({
+			id: 'publish-To-Blogspot',
+			name: 'Publish to Blogspot',
+			callback: () => {
+				// Call the method in bloggerService to handle the publishing
+				const bloggerService = new BloggerService(this.settings, this.app.vault, this.app);
+				bloggerService.publish();
+			},
 		});
 	}
 
