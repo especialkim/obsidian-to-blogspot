@@ -1,0 +1,315 @@
+import { App, PluginSettingTab, Setting } from 'obsidian';
+import MyPlugin from '../main';
+
+export interface BlogInfo {
+    url: string;
+    alias: string;
+}
+
+export interface MyPluginSettings {
+	mySetting: string;
+	credentialsFilePath: string; // 추가된 설정 필드
+    tokenStoragePath: string;
+    blogId: string;
+    blogInfos: BlogInfo[]; // 새로운 필드
+    imgurClientId: string; // 추가된 필드
+    includeStartMarker: boolean; // 추가된 필드
+    startMarker: string; // 추가된 필드
+    includeEndMarker: boolean; // 추가된 필드
+    endMarker: string; // 추가된 필드
+    useHtmlWrapClass: boolean; // 추가된 필드
+    htmlWrapClassName: string; // 추가된 필드
+    dateFormat: string; // 추가된 필드
+    dateLanguage: 'ko' | 'en'; // 추가된 필드
+    openBrowserAfterPublish: boolean; // 추가된 필드
+    displayBacklinksAndOutlinks: boolean; // 추가된 필드
+    labelPrefix: string; // 추가된 필드
+    cssFilePath: string; // 추가된 필드
+}
+
+export const DEFAULT_SETTINGS: MyPluginSettings = {
+	mySetting: 'default',
+	credentialsFilePath: '', // 기본값 설정
+    tokenStoragePath: '',
+    blogId: '',
+    blogInfos: [{ url: '', alias: '' }], // 기본값으로 빈 세트 하나 제공
+    imgurClientId: '', // 기본값 설정
+    includeStartMarker: false, // 기본값 설정
+    startMarker: '', // 기본값 설정
+    includeEndMarker: false, // 기본값 설정
+    endMarker: '', // 기본값 설정
+    useHtmlWrapClass: false, // 기본값 설정
+    htmlWrapClassName: '', // 기본값 설정
+    dateFormat: '', // 기본값 설정
+    dateLanguage: 'en', // 기본값 설정
+    openBrowserAfterPublish: false, // 기본값 설정
+    displayBacklinksAndOutlinks: false, // 기본값 설정
+    labelPrefix: '', // 기본값 설정
+    cssFilePath: '', // 기본값 설정
+}
+
+export class SampleSettingTab extends PluginSettingTab {
+	plugin: MyPlugin;
+
+	constructor(app: App, plugin: MyPlugin) {
+		super(app, plugin);
+		this.plugin = plugin;
+	}
+
+	display(): void {
+		const {containerEl} = this;
+
+		containerEl.empty();
+
+		containerEl.createEl('h2', {text: 'Oauth2 Settings', cls: 'obsidian-to-blogger'});
+
+		new Setting(containerEl)
+			.setName('OAuth Client Secret JSON File')
+			.setDesc('Select the OAuth client secret JSON file from your vault')
+			.addDropdown(dropdown => {
+				// JSON 파일만 필터링
+				const jsonFiles = this.app.vault.getFiles().filter(file => file.extension === 'json');
+				
+				// 드롭다운 옵션 설정
+				jsonFiles.forEach(file => {
+					dropdown.addOption(file.path, file.path);
+				});
+
+				// 현재 설정값 선택
+				dropdown.setValue(this.plugin.settings.credentialsFilePath);
+
+				// 변경 이벤트 처리
+				dropdown.onChange(async (value) => {
+					this.plugin.settings.credentialsFilePath = value;
+					await this.plugin.saveSettings();
+				});
+			});
+
+        new Setting(containerEl)
+            .setName('(Opt)Access Token Path')
+            .setDesc('Select the JSON file where the access token will be stored')
+            .addDropdown(dropdown => {
+                // JSON 파일만 필터링
+                const jsonFiles = this.app.vault.getFiles().filter(file => file.extension === 'json');
+                
+                // 드롭다운 옵션 설정
+                jsonFiles.forEach(file => {
+                    dropdown.addOption(file.path, file.path);
+                });
+
+                // 현재 설정값 선택
+                dropdown.setValue(this.plugin.settings.tokenStoragePath);
+
+                // 변경 이벤트 처리
+                dropdown.onChange(async (value) => {
+                    this.plugin.settings.tokenStoragePath = value;
+                    await this.plugin.saveSettings();
+                });
+            });
+
+        containerEl.createEl('h2', {text: 'Blog Information', cls: 'obsidian-to-blogger'});
+
+        new Setting(containerEl)
+        .setName('Blog ID')
+        .setDesc('Enter your Blogger blog ID')
+        .addText(text => text
+            .setPlaceholder('Enter your blog ID')
+            .setValue(this.plugin.settings.blogId)
+            .onChange(async (value) => {
+                this.plugin.settings.blogId = value;
+                await this.plugin.saveSettings();
+            }));
+
+        // 블로그 정보 설정 추가
+        const blogInfoContainer = containerEl.createDiv();
+        this.plugin.settings.blogInfos.forEach((blogInfo, index) => {
+            this.createBlogInfoSetting(blogInfoContainer, index);
+        });
+
+        // 새 블로그 정보 추가 버튼
+        new Setting(containerEl)
+            .addButton(button => button
+                .setButtonText('+')
+                .onClick(async () => {
+                    this.plugin.settings.blogInfos.push({ url: '', alias: '' });
+                    await this.plugin.saveSettings();
+                    this.display(); // 설정 화면 새로고침
+                })
+            );
+
+        containerEl.createEl('h2', {text: 'Markdown Preprocessing', cls: 'obsidian-to-blogger'});
+
+        new Setting(containerEl)
+        .setName('Imgur Client ID')
+        .setDesc('Enter your Imgur Client ID')
+        .addText(text => text
+            .setPlaceholder('Enter your client id')
+            .setValue(this.plugin.settings.imgurClientId)
+            .onChange(async (value) => {
+                this.plugin.settings.imgurClientId = value;
+                await this.plugin.saveSettings();
+            }));
+
+        new Setting(containerEl)
+        .setName('Include Start Marker')
+        .setDesc('Include the line with the start marker in the output')
+        .addToggle(toggle => toggle
+            .setValue(this.plugin.settings.includeStartMarker)
+            .onChange(async (value) => {
+                this.plugin.settings.includeStartMarker = value;
+                await this.plugin.saveSettings();
+            }));
+
+        new Setting(containerEl)
+            .setName('Start Marker')
+            .setDesc('Text to mark the start of the content to be published')
+            .addText(text => text
+                .setPlaceholder('Enter start marker')
+                .setValue(this.plugin.settings.startMarker)
+                .onChange(async (value) => {
+                    this.plugin.settings.startMarker = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Include End Marker')
+            .setDesc('Include the line with the end marker in the output')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.includeEndMarker)
+                .onChange(async (value) => {
+                    this.plugin.settings.includeEndMarker = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('End Marker')
+            .setDesc('Text to mark the end of the content to be published')
+            .addText(text => text
+                .setPlaceholder('Enter end marker')
+                .setValue(this.plugin.settings.endMarker)
+                .onChange(async (value) => {
+                    this.plugin.settings.endMarker = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        containerEl.createEl('h2', {text: 'HTML Formatting', cls: 'obsidian-to-blogger'});
+
+        new Setting(containerEl)
+            .setName('Use HTML Wrap Class')
+            .setDesc('Wrap the converted HTML in a div with a custom class')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.useHtmlWrapClass)
+                .onChange(async (value) => {
+                    this.plugin.settings.useHtmlWrapClass = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('HTML Wrap Class Name')
+            .setDesc('Class name for the wrapping div (if enabled)')
+            .addText(text => text
+                .setPlaceholder('Enter class name')
+                .setValue(this.plugin.settings.htmlWrapClassName)
+                .onChange(async (value) => {
+                    this.plugin.settings.htmlWrapClassName = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+        .setName('CSS/MD File Path')
+        .setDesc('Select the CSS or MD file from your vault')
+        .addText(text => text
+            .setPlaceholder('Enter class name')
+            .setValue(this.plugin.settings.cssFilePath)
+            .onChange(async (value) => {
+                this.plugin.settings.cssFilePath = value;
+                await this.plugin.saveSettings();
+            }));
+
+        containerEl.createEl('h2', {text: 'Frontmatter', cls: 'obsidian-to-blogger'});
+
+        new Setting(containerEl)
+            .setName('Date Format')
+            .setDesc('Specify the format for dates (e.g., "[[YYYY-MM-DD(ddd)|YYYY-MM-DD(ddd) HH:mm]]")')
+            .addText(text => text
+                .setPlaceholder('Enter date format')
+                .setValue(this.plugin.settings.dateFormat)
+                .onChange(async (value) => {
+                    this.plugin.settings.dateFormat = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Date Language')
+            .setDesc('Choose the language for date formatting')
+            .addDropdown(dropdown => dropdown
+                .addOption('ko', '한국어')
+                .addOption('en', 'English')
+                .setValue(this.plugin.settings.dateLanguage)
+                .onChange(async (value: 'ko' | 'en') => {
+                    this.plugin.settings.dateLanguage = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        containerEl.createEl('h2', {text: 'Etc', cls: 'obsidian-to-blogger'});
+
+        new Setting(containerEl)
+            .setName('Label Link Prefix')
+            .setDesc('Prefix to use for label links in the post, separated by commas')
+            .addText(text => text
+                .setPlaceholder(')')
+                .setValue(this.plugin.settings.labelPrefix)
+                .onChange(async (value) => {
+                    this.plugin.settings.labelPrefix = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+        .setName('Display Backlinks and Outlinks')
+        .setDesc('Choose whether to display backlinks and outlinks in the post')
+        .addToggle(toggle => toggle
+            .setValue(this.plugin.settings.displayBacklinksAndOutlinks)
+            .onChange(async (value) => {
+                this.plugin.settings.displayBacklinksAndOutlinks = value;
+                await this.plugin.saveSettings();
+            }));
+        
+
+        new Setting(containerEl)
+        .setName('Open Browser After Publish')
+        .setDesc('Automatically open the published post in browser after successful upload')
+        .addToggle(toggle => toggle
+            .setValue(this.plugin.settings.openBrowserAfterPublish)
+            .onChange(async (value) => {
+                this.plugin.settings.openBrowserAfterPublish = value;
+                await this.plugin.saveSettings();
+            }));
+
+	}
+
+	createBlogInfoSetting(container: HTMLElement, index: number): void {
+		const setting = new Setting(container)
+			.setName(`Blog Info ${index + 1}`)
+			.addText(text => text
+				.setPlaceholder('Blog URL')
+				.setValue(this.plugin.settings.blogInfos[index].url)
+				.onChange(async (value) => {
+					this.plugin.settings.blogInfos[index].url = value;
+					await this.plugin.saveSettings();
+				}))
+			.addText(text => text
+				.setPlaceholder('Blog Alias')
+				.setValue(this.plugin.settings.blogInfos[index].alias)
+				.onChange(async (value) => {
+					this.plugin.settings.blogInfos[index].alias = value;
+					await this.plugin.saveSettings();
+				}))
+			.addButton(button => button
+				.setButtonText('X')
+				.onClick(async () => {
+					this.plugin.settings.blogInfos.splice(index, 1);
+					await this.plugin.saveSettings();
+					this.display(); // 설정 화면 새로고침
+				}));
+	}
+}
