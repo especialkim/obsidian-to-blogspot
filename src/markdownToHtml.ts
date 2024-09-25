@@ -22,17 +22,16 @@ export class MarkdownToHtml {
 
 	async convert() {
 		const bundle = await this.markdownToHtmlBundle();
-		const content = bundle.content;
+		let content = bundle.content;
 		const hiddenLinks = bundle.hiddenLinks;
-		let html = '';
+
+		content = this.convertLatexToHtml(content);
 
 		if(this.settings.makeLinksDataSet){
-			html = content + hiddenLinks;
-		}else{
-			html = content;
+			content += hiddenLinks;
 		}
 		
-		html = await this.makeHtmlDocument(html);
+		const html = await this.makeHtmlDocument(content);
 		const fileName = await this.createHtmlFile(html);
 		await this.openHtmlFile(fileName);
 	}
@@ -49,6 +48,8 @@ export class MarkdownToHtml {
 		let { content, linkDataSet } = await this.markdownPreprocessing.preprocess(fileContent);
 
 		content = content.replace(/==([^=]+)==/g, '<mark>$1</mark>');
+		content = this.convertLatexToHtml(content);
+
 		content = CalloutToHtml.process(content);
 		content = await this.convertToHtml(content);
 		content = this.restructureNestedLists(content);
@@ -123,6 +124,7 @@ export class MarkdownToHtml {
 			<meta charset="UTF-8">
 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
 			<title>Document</title>
+			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.7/dist/katex.min.css">
 			<style>
 				${await this.getCssCode()}
 			</style>
@@ -166,5 +168,19 @@ export class MarkdownToHtml {
 		} else {
 			console.error('File not found:', fileName);
 		}
+	}
+	
+	private convertLatexToHtml(markdown: string): string {
+		// First, handle inline LaTeX ($...$), but not \$...\$ and not inside $$...$$
+		let result = markdown.replace(/(?<!\$)(?<!\\)\$(?!\$)((?:[^\$\\]|\\.)*?[^\\])\$(?!\$)/g, (match, latex) => {
+			return `<span class="math math-inline">$${latex}$</span>`;
+		});
+
+		// Then, handle block LaTeX ($$...$$)
+		result = result.replace(/(\$\$)([\s\S]*?)(\$\$)/g, (match, start, latex, end) => {
+			return `<div class="math math-display">${start}${latex}${end}</div>`;
+		});
+
+		return result;
 	}
 }

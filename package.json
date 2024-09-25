@@ -14,6 +14,7 @@
 	"devDependencies": {
 		"@types/axios": "^0.14.0",
 		"@types/date-fns": "^2.6.0",
+		"@types/katex": "^0.16.7",
 		"@types/mermaid": "^9.2.0",
 		"@types/node": "^16.11.6",
 		"@types/obsidian-typings": "npm:obsidian-typings@^2.2.0",
@@ -21,6 +22,7 @@
 		"@typescript-eslint/parser": "5.29.0",
 		"builtin-modules": "3.3.0",
 		"esbuild": "0.17.3",
+		"katex": "^0.16.7",
 		"obsidian": "latest",
 		"tslib": "2.4.0",
 		"typescript": "4.7.4"

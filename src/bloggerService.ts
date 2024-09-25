@@ -33,6 +33,55 @@ export class BloggerService {
         return tokenInfo.access_token;
     }
 
+    public async publishQuickUpdate(): Promise<void> {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile) {
+            new Notice('No active file');
+            return;
+        }
+    
+        try {
+            const accessToken = await this.getAccessToken();
+            const htmlBundle = await this.markdownToHtml.markdownToHtmlBundle();
+    
+            const { title, content, labels, tags } = this.extractContentData(htmlBundle);
+            const processedLabels = this.processLabels(labels, tags);
+    
+            const frontMatter = await this.getFrontMatter(activeFile);
+            if (!frontMatter || !frontMatter.blogArticleId) {
+                new Notice('No existing blog post found. Please use full publish for the first time.');
+                return;
+            }
+    
+            // Use existing frontmatter data instead of opening a modal
+            const updatedSettings: PostSettings = {
+                blogAlias: frontMatter.blogAlias || '',
+                blogId: frontMatter.blogId || '',
+                blogUrl: frontMatter.blogUrl || '',
+                blogType: (frontMatter.blogType as 'post' | 'page') || 'post',
+                blogTitle: title, // Use the current title from the markdown
+                blogArticleId: frontMatter.blogArticleId,
+                blogArticleUrl: frontMatter.blogArticleUrl || '',
+                blogLabels: processedLabels.join(', '),
+                blogIsDraft: frontMatter.blogIsDraft as 'true' | 'false' || 'false',
+                blogPublished: frontMatter.blogPublished || '',
+                blogUpdated: frontMatter.blogUpdated || '',
+            };
+    
+            const bloggerResponse = await this.handleBloggerResponse(frontMatter, updatedSettings, content, accessToken);
+    
+            const newFrontmatter = this.makeFrontmatterData(bloggerResponse, updatedSettings.blogAlias, updatedSettings.blogType);
+            await updateFrontmatter(activeFile, this.vault, newFrontmatter);
+    
+            new Notice('Quick update completed successfully.');
+            await this.handlePostPublish(bloggerResponse);
+    
+        } catch (error) {
+            console.error('Error quick updating to Blogspot:', error);
+            new Notice('Error quick updating to Blogspot. Check console for details.');
+        }
+    }
+
     public async publish(): Promise<void> {
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile) {
@@ -253,14 +302,26 @@ export class BloggerService {
     }
 
     private async updateBloggerPost(blogId: string, postId: string, title: string, content: string, labels: string[], setDraft: string, accessToken: string) {
-        const postData = {
+        // Check for empty required fields
+        if (!title.trim()) {
+            throw new Error('Post title cannot be empty');
+        }
+        if (!content.trim()) {
+            throw new Error('Post content cannot be empty');
+        }
+
+        const postData: any = {
             kind: "blogger#post",
             id: postId,
             blog: { id: blogId },
-            title: title,
-            content: content,
-            labels: labels
+            title: title.trim(),
+            content: content.trim()
         };
+
+        // Only include labels if they are not empty
+        if (labels && labels.length > 0 && labels.some(label => label.trim() !== '')) {
+            postData.labels = labels.filter(label => label.trim() !== '');
+        }
 
         const response = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${postId}`, {
             method: 'PUT',
@@ -273,7 +334,7 @@ export class BloggerService {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error.message}`);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error.message}, details: ${JSON.stringify(errorData)}`);
         }
 
         return await response.json();

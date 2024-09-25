@@ -80,7 +80,7 @@ Obsidian to Blogger 플러그인은 Obsidian에서 작성한 마크다운 문서
 1. 플러그인 설정에서 필요한 정보를 입력합니다.
 2. Obsidian 명령 팔레트를 열고 다음 명령을 사용합니다:
    - "Get Google Auth Token": Google 인증 토큰을 획득합니다.
-   - "Markdown to HTML": 현재 문서를 HTML로 변환합니다. 이 과정에서 이미지 업로드, 다이어그램 렌더링, 링크 처리 등이 자동으로 이루어집니���.
+   - "Markdown to HTML": 현재 문서를 HTML로 변환합니다. 이 과정에서 이미지 업로드, 다이어그램 렌더링, 링크 처리 등이 자동으로 이루어집니다.
    - "Make Links Data Set": 링크 데이터 세트를 생성합니다.
    - "Publish to Blogspot": 변환된 HTML 문서를 Blogger에 발행합니다.
 
