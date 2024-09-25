@@ -6,7 +6,533 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <style>
-        
+:root {
+  --fantasy-background-color-rgb: 15, 29, 17;
+
+  --background-color: #1c1818;
+  --background-color-splitter: #333;
+  --background-url: url("https://cdn.pixabay.com/photo/2016/06/18/06/23/news-1464581_1280.jpg");
+  --background-url: url("https://media4.giphy.com/media/sfjfPOe8DKptm/giphy.gif?cid=ecf05e472spx1sffa3nfopnyapyff7lz1qp2ye0r0rb8mem7&ep=v1_gifs_related&rid=giphy.gif&ct=g");
+  
+  --background-tab-primary: rgb(20 47 23 / 45%);
+  --background-tab-primary: rgba(6, 13, 18, 0.3);
+  --background-tab-primary-alt: rgba(6, 13, 18, 0.15);
+  
+  --color-base-00: #1e1e1e;
+  --color-base-05: #212121;
+  --color-base-10: #242424;
+  --color-base-20: #262626;
+  --color-base-25: #2a2a2a;
+  --color-base-30: #363636;
+  --color-base-35: #3f3f3f;
+  --color-base-40: #555555;
+  --color-base-45: #505050;
+  --color-base-50: #666666;
+  --color-base-55: #7d7d7d;
+  --color-base-60: #999999;
+  --color-base-65: #909090;
+  --color-base-70: #a0a0a0; /* 수정된 값 */
+  --color-base-75: #a5a5a5;
+  --color-base-80: #b5b5b5;
+  --color-base-85: #c0c0c0;
+  --color-base-90: #cccccc;
+  --color-base-95: #d6d6d6;
+  --color-base-100: #dadada;
+  --color-base-200: #FFFFFF;
+
+  --line-color: #5c5c5c;
+
+  --height-tab-bar: 35px;
+
+  /* --width-container: 1440px; */
+  --width-container: 750px;
+  --width-sidebar: 280px;
+  --width-splitter: 4px;
+  --width-ribbon: calc(var(--height-tab-bar) + 1px);
+  --width-tab-button: 20px;
+
+  --height-status-bar: 34px;
+
+  --gap: 8px;
+  --radius: 10px;
+  --radius-ribbon: 16px;
+
+  --text-color: var(--color-base-85);
+  --text-size: 15px;
+
+  /* Markdown */
+
+  --file-line-width: 720px;
+
+  --accent-hsl: 44, 77%, 50%;
+  --accent-h: 44 ;
+  --accent-s: 77% ;
+  --accent-l: 50% ;
+
+  --color-accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+  --color-accent-20: hsl(calc(var(--accent-h) + 20), calc(var(--accent-s) + 25%), var(--accent-l));
+  --color-accent-35: hsl(calc(var(--accent-h) + 35), calc(var(--accent-s) + 25%), var(--accent-l));
+  --color-accent-35-opacity: hsl(calc(var(--accent-h) + 35), calc(var(--accent-s) + 25%), var(--accent-l), 0.6);
+
+  --rainbow-color-01: #f8bfbf;
+  --rainbow-color-02: #f3c494;
+  --rainbow-color-03: #d4d517;
+  --rainbow-color-04: #7fe619;
+  --rainbow-color-05: #43eb43;
+  --rainbow-color-06: #38e991;
+  --rainbow-color-07: #19e4e5;
+  --rainbow-color-08: #add1f6;
+  --rainbow-color-09: #cacaf9;
+  --rainbow-color-10: #e5bff8;
+  --rainbow-color-11: #f7b8f7;
+  --rainbow-color-12: #f8bbd9;
+
+  --divider-color: var(--color-base-55);
+    
+  --h1-color : var(--rainbow-color-03);
+  --h2-color : var(--rainbow-color-04);
+  --h3-color : var(--rainbow-color-05);
+  --h4-color : var(--rainbow-color-06);
+  --h5-color : var(--rainbow-color-07);
+  --h6-color : var(--rainbow-color-08);
+
+  --h1-size: 1.3em;
+  --h2-size: 1.2em;
+  --h3-size: 1.15em;
+  --h4-size: 1.1em;
+  --h5-size: 1.05em;
+  --h6-size: 1.05em;
+  --heading-spacing: calc(var(--p-spacing) * 2.5);
+  --heading-font-weight: 600;
+
+  /* --blockquote-padding : 6px 6px 6px 10px; */
+  --blockquote-border-radius: 4px;
+  --blockquote-background-font-size: 0.96em;
+  --blockquote-background-color: rgba(137, 121, 121, 0.2);
+  --blockquote-border-color: var(--color-accent);
+  --blockquote-color: var(--color-base-80);
+  --blockquote2-color: var(--color-base-55);
+  --blockquote2-font-size: 0.93em;
+  --blockquote2-border-color: hsla(var(--accent-h), var(--accent-s), calc(var(--accent-l) + 15%), 0.8);
+  --blockquote2-background-color: rgba(var(--fantasy-background-color-rgb), 0.4);
+
+  --callout-bug: 208, 71, 69;
+  --callout-default: 105, 105, 218;
+  --callout-error: 208, 71, 69;
+  --callout-example: 150, 88, 213;
+  --callout-fail: 208, 71, 69;
+  --callout-important: 33, 130, 130;
+  --callout-info: 105, 105, 218;
+  --callout-question: 166, 104, 42;
+  --callout-success: 34, 135, 34;
+  --callout-summary: 33, 130, 130;
+  --callout-tip: 33, 130, 130;
+  --callout-todo: 105, 105, 218;
+  --callout-warning: 166, 104, 42;
+  --callout-quote: 158, 158, 158;
+
+  --callout-border-width: 4px;
+  --callout-border-opacity: 0.6;
+  --callout-content-background: rgba(var(--fantasy-background-color-rgb), 0.3);
+
+  --inline-code-color: var(--color-accent-20);
+  --code-background: rgb(137 121 121 / 42%);
+  --code-size: 0.95em;
+  --codeblock-background: rgb(24 22 22 / 42%);
+  --codeblock-header: rgb(24 22 22 / 70%);
+
+  --img-mask: 7px;
+  
+  --p-spacing: 0.5rem;
+
+  --list-spacing: 0.075em;
+  --list-indent: 1.5em;
+  --list-line-color: var(--color-base-60);
+  --list-line-color-hover: var(--color-base-100);
+
+  --bold-color: var(--color-accent-20);
+  --italic-color: var(--color-accent-35);
+  --highlight-text-color: var(--color-base-200);
+  --highlight-color: var(--color-accent-35-opacity);
+
+  --table-text-size: 0.9em;
+  --table-bg-color: rgba(var(--fantasy-background-color-rgb), 0.2);
+  --table-border-color: var(--text-color);
+  --table-odd-row-bg-color: rgba(var(--fantasy-background-color-rgb), 0.4);
+} 
+
+/* Initialize */
+a {
+  color: inherit; /* 링크 색상을 부모 요소의 색상으로 상속 */
+  text-decoration: none; /* 기본 밑줄 제거 */
+}
+
+a:hover {
+  color: var(--highlight-color); /* 호버 시 강조 색상 */
+  text-decoration: underline; /* 호버 시 밑줄 추가 */
+}
+
+a:visited {
+  color: var(--visited-link-color); /* 방문한 링크 색상 */
+}
+
+mark{
+  background-color: transparent;
+}
+
+ul, ol {
+    padding-inline-start: 0;
+}
+
+blockquote {
+    margin-inline-start: 0;
+    margin-inline-end: 0;
+}
+
+img{
+    max-width: 100%;
+    max-height: 30vh;
+}
+
+body{
+    margin: auto;
+    max-width: var(--width-container);
+    background-color: rgba(0, 0, 0, 0.798);
+    color: var(--text-color);
+    line-height: 1.3;
+}
+
+hr{
+  border: none;
+  border-top: 1px solid var(--divider-color);
+  color: var(--divider-color);
+  margin-top: calc(var(--p-spacing) * 3);
+  margin-bottom: calc(var(--p-spacing) * 3);
+}
+
+/* Markdown */
+h1{
+  --p-spacing: var(--h1-size);
+  font-size: var(--h1-size);    
+  color: var(--h1-color);
+}
+h2{
+  --p-spacing: var(--h2-size);
+  font-size: var(--h2-size);    
+  color: var(--h2-color);
+}
+h3{
+  --p-spacing: var(--h3-size);
+  font-size: var(--h3-size);    
+  color: var(--h3-color);
+}
+h4{
+  --p-spacing: var(--h4-size);
+  font-size: var(--h4-size);    
+  color: var(--h4-color);
+}
+h5{
+  --p-spacing: var(--h5-size);
+  font-size: var(--h5-size);    
+  color: var(--h5-color);
+}
+h6{
+  --p-spacing: var(--h6-size);
+  font-size: var(--h6-size);    
+  color: var(--h6-color);
+}
+h1, h2, h3, h4, h5, h6{
+  margin-block-start: var(--p-spacing);
+  margin-block-end: var(--p-spacing);
+  font-weight: var(--heading-font-weight);
+}
+h1:first-child{
+  margin-block-start: 0;
+}
+
+h2{
+  display: flex;
+  align-items: center;
+}
+
+h2::after{
+  content: "";
+  background-color: var(--h2-color);
+  height: 1px;
+  margin:3px 0px 0px 15px;
+  flex-grow:1;
+}
+
+b, strong{
+  color: var(--bold-color);
+  font-weight: normal;
+}
+
+em{
+  color: var(--italic-color);
+}
+
+mark{
+  box-shadow: inset 0 -7px 0px var(--highlight-color);
+  text-decoration: none;
+  color: var(--highlight-text-color);
+}
+
+strong mark{
+  color: var(--bold-color);
+}
+
+code {
+  background-color: var(--code-background);
+  padding: 1px 5px;
+  border-radius: 0.2em;
+  font-size: 0.9em;
+}
+
+li > code,
+p > code{
+  color: var(--color-accent-20);
+}
+
+pre:has(code) {
+  position: relative;
+  background-color: var(--codeblock-background);
+  border-radius: 5px;
+  margin: var(--p-spacing) 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+pre:has(code):before {
+  display: block;
+  content: " ";
+  height: 1.8em;
+  background-color: var(--codeblock-header);
+}
+
+pre:has(code) code{
+  padding: 10px 15px;
+  font-size: 0.9em;
+  line-height: 1.3;
+  color: var(--color-blockquote-font);
+}
+
+pre:has(code) .class-name {
+  position: absolute;
+  top: 5px;
+  left: 0px;
+  color: #EBEBEB;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 0.8em;
+}
+
+pre:has(code) .copy-btn {
+  position: absolute;
+  top: 1px;
+  right: 5px;
+  background-color: transparent;
+  color: #EBEBEB;
+  border: none;
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 0.8em;
+}
+
+pre:has(code) .copy-btn:hover {
+  background-color: black;
+}
+
+pre:has(code) .copy-btn:active {
+  background-color: black;
+}
+
+pre code{
+  background-color: initial;
+}
+
+blockquote {
+  border-left: 4px solid var(--blockquote-border-color);
+  padding: calc(5px + var(--p-spacing)) 5px 5px 10px;
+  background-color: var(--blockquote-background-color);
+  color: var(--blockquote-color);
+  font-size: var(--blockquote-background-font-size);
+  font-style: italic;
+}
+
+p{
+  margin-bottom: var(--p-spacing);
+}
+
+li{
+  margin-left: var(--list-indent);
+  padding-top: var(--list-spacing);
+  padding-bottom: var(--list-spacing);
+}
+
+.ul > ol, ol > ol, ol > ul, ul > ul {
+  margin-left: 0.6rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--color-base-70);
+}
+
+a,
+a:visited,
+a:hover{
+  color: var(--color-accent);
+}
+
+table {
+  background-color: var(--table-bg-color);
+  border-spacing: 0;
+  text-align: center;
+  font-size: var(--table-text-size);
+  margin: auto;
+}
+
+th {
+  border-top: 1px solid var(--table-border-color);
+  border-bottom: 2px solid var(--table-border-color);
+}
+
+th,
+td {
+  padding: 8px 10px 4px 10px;
+  border-right: 1px solid var(--table-border-color);
+  vertical-align: middle;
+}
+
+th{
+  padding-bottom: 7px;
+}
+
+th:last-child,
+td:last-child {
+  border-right: none;
+}
+
+tr:last-child td {
+  border-bottom: 1px solid var(--table-border-color);
+}
+
+tbody tr:nth-child(odd) {
+  background-color: var(--table-odd-row-bg-color);
+}
+
+.callout, .callout-default {--callout: rgba(var(--callout-default),0.6);}
+.callout.callout-bug {--callout: rgba(var(--callout-bug),0.6);}
+.callout.callout-error {--callout: rgba(var(--callout-error),0.6);}
+.callout.callout-example {--callout: rgba(var(--callout-example),0.6);}
+.callout.callout-fail {--callout: rgba(var(--callout-fail),0.6);}
+.callout.callout-important {--callout: rgba(var(--callout-important),0.6);}
+.callout.callout-info {--callout: rgba(var(--callout-info),0.6);}
+.callout.callout-question {--callout: rgba(var(--callout-question),0.6);}
+.callout.callout-success {--callout: rgba(var(--callout-success),0.6);}
+.callout.callout-summary {--callout: rgba(var(--callout-summary),0.6);}
+.callout.callout-tip {--callout: rgba(var(--callout-tip),0.6);}
+.callout.callout-todo {--callout: rgba(var(--callout-todo),0.6);}
+.callout.callout-warning {--callout: rgba(var(--callout-warning),0.6);}
+.callout.callout-quote {--callout: rgba(var(--callout-quote),0.6);}
+
+.callout{
+  position: relative;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  border: var(--callout-border-width) solid var(--callout);
+  border-radius: 5px;
+}
+.callout-title{
+  font-family: var(--font-title-primary);
+  padding: 5px 5px 6px 11px;
+  margin-bottom: 0;
+  background-color: var(--callout);
+  color: #EBEBEB;
+  font-size: 0.98em;
+  font-weight: 600;
+}
+.callout-content{
+  background-color: var(--callout-content-background);
+  padding: 10px 15px;
+  color: var(--blockquote-color);
+  font-size: 0.95em;
+}
+
+.article-content > a {
+  display: block;
+}
+
+.article-content > *,
+.article-content > .obsidian > *{
+  max-width: var(--file-line-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ul 스타일 */
+
+/* ol 스타일 */
+ol {
+  counter-reset: item; /* 리스트 번호 초기화 */
+}
+
+ol > li {
+  counter-increment: item; /* 번호 증가 */
+  position: relative; /* 상대 위치 설정 */
+  list-style: none;
+}
+
+ol > li::before {
+  content: counter(item) ". "; /* 번호 표시 */
+  position: absolute; /* 절대 위치 설정 */
+  left: -17px; /* 번호를 왼쪽으로 이동 */
+}
+
+li{
+  margin-left: var(--list-indent);
+  padding-top: var(--list-spacing);
+  padding-bottom: var(--list-spacing);
+}
+
+ol > li
+ul > li {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  margin-inline-start: 1.5em;
+}
+
+ul > ol,
+ol > ol,
+ol > ul,
+ul > ul {
+  margin-left: 0.5rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--list-line-color);
+}
+
+ul > ol:hover,
+ol > ol:hover,
+ol > ul:hover,
+ul > ul:hover{
+  border-color: var(--list-line-color-hover);
+}
+
+ul > ul > li {
+  list-style: circle;
+}
+
+ul > ul > ul > li {
+  list-style: square;
+}
+
+ul > ul > ul > ul > li {
+  list-style: circle;
+}
+
+
+
     </style>
 </head>
 <body>
@@ -425,5 +951,41 @@ The img - 옵시디언 편집모드 by Lucy.png|사이즈 400
 <a href="http://facilitate4u.blogspot.com/2024/09/blog-post_52.html" class="backlink hiddenlink">' 코드블럭 테스트.md</a><h2 class="hiddenlink-heading">Related Links</h2>
 <h3 class="hiddenlink-heading">Backlinks</h3>
 <a href="http://facilitate4u.blogspot.com/2024/09/blog-post_52.html" class="backlink hiddenlink">' 코드블럭 테스트.md</a>
+<script>
+    // CodeBlock 복사하기
+  
+    document.querySelectorAll('pre:has(code)').forEach(preElement => {
+      // code 요소의 클래스명을 읽어와서 표시할 div 생성
+      const codeElement = preElement.querySelector('code');
+      const className = codeElement.className.replace('language-', '').charAt(0).toUpperCase() + codeElement.className.replace('language-', '').slice(1);
+  
+      // 클래스명을 표시하는 요소 생성
+      const classDiv = document.createElement('div');
+      classDiv.className = 'class-name';
+      classDiv.textContent = className;
+      preElement.appendChild(classDiv);
+  
+      // 복사 버튼 생성
+      const copyButton = document.createElement('button');
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = '📄 Copy';
+      preElement.appendChild(copyButton);
+  
+      // 복사 버튼 클릭 이벤트 리스너 추가
+      copyButton.addEventListener('click', () => {
+        const code = codeElement.innerText.trim();
+  
+        navigator.clipboard.writeText(code).then(() => {
+          // 버튼 텍스트를 '📄 Copied'로 변경
+          copyButton.textContent = '📄 Copied';
+          setTimeout(() => {
+            copyButton.textContent = '📄 Copy'; // 원래 텍스트로 복구
+          }, 2000); // 2초 후에 텍스트 원래대로 복구
+        }).catch(err => {
+          console.error('복사 실패:', err);
+        });
+      });
+    });
+  </script>
 </body>
 </html>

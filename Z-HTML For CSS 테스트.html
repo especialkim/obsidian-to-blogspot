@@ -1,269 +1,11 @@
-import { marked } from 'marked';
-import { App, Notice, TFile } from 'obsidian';
-import { MarkdownPreprocessing } from './markdownPreprocessing';
-import { MyPluginSettings } from './settings';
-import { CalloutToHtml } from './calloutToHtml';
-import { MakeLinkedDataSet } from './makeLinkedDataSet';
-import { HtmlBundle } from './types';
-import { normalizePath } from 'obsidian';
-
-export class MarkdownToHtml {
-	private app: App;
-	private settings: MyPluginSettings;
-    private markdownPreprocessing: MarkdownPreprocessing;
-	private includeCssInPublish: boolean;
-
-	constructor(app: App, settings: MyPluginSettings) {
-		this.app = app;
-		this.settings = settings;
-		this.markdownPreprocessing = new MarkdownPreprocessing(app, settings);
-		this.includeCssInPublish = this.settings.includeCssInPublish;
-	}
-
-	async convert() {
-		const bundle = await this.markdownToHtmlBundle();
-		let content = bundle.content;
-		const hiddenLinks = bundle.hiddenLinks;
-
-		content = this.convertLatexToHtml(content);
-
-		if(this.settings.makeLinksDataSet){
-			content += hiddenLinks;
-		}
-		
-		const html = await this.makeHtmlDocument(content);
-		const fileName = await this.createHtmlFile(html);
-		await this.openHtmlFile(fileName);
-	}
-
-	async markdownToHtmlBundle(): Promise<HtmlBundle> {
-		const activeFile = this.app.workspace.getActiveFile();
-
-        if (!activeFile) {
-            new Notice('No active file found.');
-			return { title: '', content: '', labels: [], tags: [], hiddenLinks: ''}; 
-		}
-
-		const fileContent = await this.app.vault.read(activeFile);
-		let { content, linkDataSet } = await this.markdownPreprocessing.preprocess(fileContent);
-
-		content = content.replace(/==([^=]+)==/g, '<mark>$1</mark>');
-		content = this.convertLatexToHtml(content);
-
-		content = CalloutToHtml.process(content);
-		content = await this.convertToHtml(content);
-		content = this.restructureNestedLists(content);
-		content = this.convertYoutubeLinksToIframes(content);
-		content = this.removeParaWrappingFromImages(content);
-
-		if (this.settings.useHtmlWrapClass) {
-			const className = this.settings.htmlWrapClassName;
-			content = `<div class="${className}">${content}</div>`;
-		}
-
-		const title = activeFile.name;
-		const labels = linkDataSet.labels;
-		const tags = linkDataSet.tags;
-		const makeLinkedDataSet = new MakeLinkedDataSet(this.app, this.settings);
-		const hiddenLinks = makeLinkedDataSet.linkedDataSetToHiddenLinksHtml(linkDataSet);
-
-		if (this.settings.makeLinksDataSet){
-			content = content + hiddenLinks;
-		}
-		return {title, content, labels, tags, hiddenLinks};
-	}
-
-	private async convertToHtml(markdown: string): Promise<string> {
-        try {
-            marked.setOptions({
-                gfm: true,          // GitHub Flavored Markdown 활성화
-                breaks: true      // 단일 줄바꿈을 <br>로 변환
-            });
-
-			console.log(markdown)
-			console.log(marked.parse(markdown))
-            return marked.parse(markdown);
-
-
-        } catch (err) {
-            throw new Error(`Markdown parsing failed: ${err}`);
-        }
-    }
-
-	private restructureNestedLists(html: string): string {
-        // console.log('Before restructuring:', html);
-
-        // 1. <li>{텍스트}<ul> 또는 <li>{텍스트}<ol>를 <li>{텍스트}</li><ul> 또는 <li>{텍스트}</li><ol>로 변경 (이미 </li>가 있는 경우 제외)
-        html = html.replace(/(<li[^>]*>)((?:(?!<\/li>).)*?)(<[ou]l>)/g, '$1$2</li>\n$3');
-
-        // 2. </ul> 또는 </ol> {공백 또는 줄바꿈~~} </li> 를 </ul> 또는 </ol>로 대치
-        html = html.replace(/<\/([ou]l)>\s*<\/li>/g, '</$1>');
-
-        // console.log('After restructuring:', html);
-
-        return html;
-    }
-
-    private convertYoutubeLinksToIframes(html: string): string {
-        const youtubeRegex = /<img\s+src="(https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)(\S*))"\s+alt="(.*)"\s*\/?>/g;
-        return html.replace(youtubeRegex, (match, url, _, __, videoId, params, alt) => {
-            const embedUrl = `https://www.youtube.com/embed/${videoId}${params}`;
-            return `<div class="youtube-embed-wrapper"><iframe class="youtube-embed" src="${embedUrl}" title="${alt}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
-        });
-    }
-
-	private removeParaWrappingFromImages(content: string): string {
-		return content.replace(/<p>\s*(<img[^>]+>)\s*<\/p>/g, '$1');
-	}
-
-	private async makeHtmlDocument(htmlBody: string): Promise<string> {
-		const activeFile = this.app.workspace.getActiveFile();
-		const title = activeFile ? activeFile.name : 'Document';
-
-		return `
-		<!DOCTYPE html>
-		<html lang="en">
-		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>${title}</title>
-			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.7/dist/katex.min.css">
-			<style>
-				${await this.getCssCode()}
-			</style>
-			<!-- MathJax 설정을 먼저 정의 -->
-			<script type='text/x-mathjax-config'>
-				MathJax.Hub.Config({
-					tex2jax: {
-						inlineMath: [['$', '$']],
-						displayMath: [['$$', '$$']],
-						// 정규 표현식을 사용하여 클래스 이름에 'math'가 포함된 모든 요소를 처리하도록 설정
-						processClass: /(^| )math( |$)/,
-						ignoreClass: "no-math"
-					}
-				});
-			</script>
-			<!-- MathJax 라이브러리 로드 -->
-			<script async='async' src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML' type='text/javascript'>
-			</script>
-		</head>
-		<body>
-			${htmlBody}
-		</body>
-		<script>
-			// CodeBlock 복사하기
-
-			document.querySelectorAll('pre:has(code)').forEach(preElement => {
-				// code 요소의 클래스명을 읽어와서 표시할 div 생성
-				const codeElement = preElement.querySelector('code');
-				const className = codeElement.className.replace('language-', '').charAt(0).toUpperCase() + codeElement.className.replace('language-', '').slice(1);
-
-				// 클래스명을 표시하는 요소 생성
-				const classDiv = document.createElement('div');
-				classDiv.className = 'class-name';
-				classDiv.textContent = className;
-				preElement.appendChild(classDiv);
-
-				// 복사 버튼 생성
-				const copyButton = document.createElement('button');
-				copyButton.className = 'copy-btn';
-				copyButton.textContent = '📄 Copy';
-				preElement.appendChild(copyButton);
-
-				// 복사 버튼 클릭 이벤트 리스너 추가
-				copyButton.addEventListener('click', () => {
-					const code = codeElement.innerText.trim();
-
-					navigator.clipboard.writeText(code).then(() => {
-						// 버튼 텍스트를 '📄 Copied'로 변경
-						copyButton.textContent = '📄 Copied';
-						setTimeout(() => {
-							copyButton.textContent = '📄 Copy'; // 원래 텍스트로 복구
-						}, 2000); // 2초 후에 텍스트 원래대로 복구
-					}).catch(err => {
-						console.error('복사 실패:', err);
-					});
-				});
-			});
-		</script>
-		<button id="theme-toggle">Toggle Theme</button>
-		<script>
-			const toggleButton = document.getElementById('theme-toggle');
-			toggleButton.addEventListener('click', () => {
-				const currentTheme = document.documentElement.getAttribute('data-theme');
-				const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-				document.documentElement.setAttribute('data-theme', newTheme);
-			});
-		</script>
-		</html>
-		`
-	}
-
-	private async getCssCode(): Promise<string> {
-		if (!this.includeCssInPublish) {
-			return '';
-		}
-
-		if (!this.settings.cssFilePath || this.settings.cssFilePath.trim() === '') {
-			return this.getDefaultCssCode();
-		}
-
-		const cssFile = this.app.vault.getAbstractFileByPath(this.settings.cssFilePath);
-		if (!(cssFile instanceof TFile)) {
-			console.warn(`CSS file not found: ${this.settings.cssFilePath}`);
-			return this.getDefaultCssCode();
-		}
-
-		try {
-			return await this.app.vault.read(cssFile);
-		} catch (error) {
-			console.error(`Error reading CSS file: ${error}`);
-			return this.getDefaultCssCode();
-		}
-	}
-
-	private async createHtmlFile(html: string): Promise<string> {
-		const fileName = 'output.html';
-		const filePath = normalizePath(fileName);
-		
-		try {
-			// Create or overwrite the HTML file in the vault
-			await this.app.vault.adapter.write(filePath, html);
-		} catch (error) {
-			console.error('Error writing file:', error);
-		}
-
-		return fileName;
-	}
-
-	private async openHtmlFile(fileName: string): Promise<void> {
-		// Open the HTML file in the default browser
-		const file = this.app.vault.getAbstractFileByPath(fileName);
-		if (file) {
-			this.app.workspace.openLinkText(fileName, '', false, { active: true });
-		} else {
-			console.error('File not found:', fileName);
-		}
-	}
-	
-	private convertLatexToHtml(markdown: string): string {
-		// First, handle inline LaTeX ($...$), but not \$...\$ and not inside $$...$$
-		let result = markdown.replace(/(?<!\$)(?<!\\)\$(?!\$)((?:[^\$\\]|\\.)*?[^\\])\$(?!\$)/g, (match, latex) => {
-			return `<span class="math math-inline">$${latex}$</span>`;
-		});
-
-		// Then, handle block LaTeX ($$...$$)
-		result = result.replace(/(\$\$)([\s\S]*?)(\$\$)/g, (match, start, latex, end) => {
-			return `<div class="math math-display">${start}${latex}${end}</div>`;
-		});
-
-		return result;
-	}
-
-
-	private getDefaultCssCode(): string {
-		return `
-		@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard-dynamic-subset.css");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+    @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard-dynamic-subset.css");
 
     :root {
     /* 색상 변수 */
@@ -878,6 +620,217 @@ tbody tr:nth-child(odd) {
 #theme-toggle:hover {
   background-color: hsl(var(--accent-h), var(--accent-s), calc(var(--accent-l) - 10%));
 }
-		`;
-	}
-}
+
+    </style>
+</head>
+<body>
+    <!-- 본문 내용 -->
+    <p>! 이거지</p>
+    <p>) Markdown</p>
+    <h3>단축키 설정</h3>
+    <p><mark>설정 &gt; 단축키</mark></p>
+    <p>![CleanShot 2024-04-10 at 01.39.19.png](CleanShot 2024-04-10 at 01.39.19.png)</p>
+    <hr>
+    <div class="callout callout-tip">
+        <div class="callout-title">단축키</div>
+        <div class="callout-content">
+            <ul>
+                <li>보기모드 전환 : `Cmd + E`</li>
+                <li>⭐ 편집모드 전환 : `Cmd + Shift + E`</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>화면 모드</h3>
+    <ul>
+        <li>화면모드</li>
+        <ul>
+            <li>읽기 화면(Preview)</li>
+            <li>편집 화면</li>
+            <ul>
+                <li>라이브 미리 보기(Live Preview)</li>
+                <li>소스 모드(Source)</li>
+            </ul>
+        </ul>
+    </ul>
+    <p>![The img - 옵시디언 편집모드 by Lucy.png](The img - 옵시디언 편집모드 by Lucy.png)</p>
+    <h3>편집화면 미리보기 같이 보기</h3>
+    <p>![CleanShot 2024-04-10 at 01.30.06.png](CleanShot 2024-04-10 at 01.30.06.png)</p>
+    <hr>
+    <div class="callout callout-tip">
+        <div class="callout-title">헤딩</div>
+        <div class="callout-content">
+            <ul>
+                <li>⭐ Heading2 : `Cmd + Shift + 2`</li>
+                <li>⭐ Heading3 : `Cmd + Shift + 3`</li>
+                <li>⭐ Heading4 : `Cmd + Shift + 4`</li>
+                <li>⭐ 콜아웃 변환 : `Cmd + Shift + 7`</li>
+                <li>⭐ 숫자 목록 변환 : `Cmd + Shift + 8`</li>
+                <li>⭐ 인용구 변환 : `Cmd + Shift + 9`</li>
+                <li>⭐ 불릿 목록 변환 : `Cmd + Shift + 0`</li>
+            </ul>
+        </div>
+    </div>
+
+    <h1>Heading1</h1>
+    <p>Pariatur aliqua adipisicing aute reprehenderit irure laborum quis ut nostrud enim esse. Cillum culpa nisi laborum labore ipsum ea occaecat cillum. Anim pariatur excepteur quis elit nostrud nostrud excepteur aute dolor veniam et commodo nulla voluptate. Consectetur est aliquip nostrud cupidatat id culpa sit laboris reprehenderit consequat sit incididunt irure excepteur. Minim sunt nulla mollit cillum velit velit eu laborum. Cupidatat velit commodo pariatur ea duis exercitation labore magna ea veniam tempor elit proident velit. In non aliqua est excepteur.</p>
+    <h2>Heading2</h2>
+    <p>Culpa proident magna aliqua do duis deserunt et ex sunt dolore laborum velit amet labore veniam.</p>
+    <h3>Heading3</h3>
+    <p>Dolor voluptate tempor cillum incididunt veniam labore irure. Quis duis eiusmod commodo sunt nisi magna sint tempor mollit irure velit officia deserunt. Cillum non elit non consequat proident. Reprehenderit nostrud ex incididunt cillum qui veniam.</p>
+    <h4>Heading4</h4>
+    <p>Minim dolore enim reprehenderit esse non cupidatat cillum quis sit. Eiusmod aute minim eu ad culpa non ex sunt. Dolore Lorem laboris est est. Mollit pariatur non labore aliquip deserunt proident. Eiusmod proident est occaecat reprehenderit incididunt cupidatat fugiat anim aliqua tempor amet mollit fugiat cillum. Sint do proident do do sunt officia ipsum sunt sint adipisicing ad tempor officia ullamco. Qui magna sit laboris minim velit nulla Lorem. Culpa consequat aliquip ut nulla enim sit eu excepteur veniam deserunt sunt labore.</p>
+    <h5>Heading5</h5>
+    <p>Cupidatat cillum excepteur mollit. Nostrud sint cillum in. Irure elit duis exercitation enim. Exercitation sunt incididunt incididunt quis voluptate irure nulla sint qui. Dolore veniam ipsum amet proident laboris. Consectetur id tempor nisi velit anim ipsum. Nulla pariatur consequat commodo esse sint quis proident irure ea incididunt adipisicing consectetur.</p>
+    <h6>Heading6</h6>
+    <p>Lorem magna cupidatat sit deserunt exercitation eiusmod aliqua labore esse. Veniam sit labore excepteur consectetur aliquip exercitation consectetur. Reprehenderit tempor veniam esse anim tempor est dolore in velit eu nisi anim. Magna deserunt amet sunt esse nisi quis ut reprehenderit consequat fugiat adipisicing et.</p>
+    <hr>
+    <h3>이스케이프</h3>
+    <p>마크다운용 특수기호를 일반 문자로 표현하려면 <strong><code>\</code></strong>(역슬래시)를 사용</p>
+    <ul>
+        <li>예시1</li>
+        <ul>
+            <li>&amp; 옵시디언 플러그인</li>
+            <li>[[옵시디언 플러그인]]</li>
+        </ul>
+        <li>예시2</li>
+        <ul>
+            <li>#Obsidian </li>
+            <li>#Obsidian</li>
+        </ul>
+    </ul>
+    <hr>
+    <div class="callout callout-tip">
+        <div class="callout-title">타이포 그래피</div>
+        <div class="callout-content">
+            <ul>
+                <li>관련 플러그인</li>
+                <ul>
+                    <li>[Editing Toolbar](https://github.com/PKM-er/obsidian-editing-toolbar) : 텍스트 편집 툴바 제공</li>
+                    <li>[Style Setting](https://github.com/mgmeyers/obsidian-style-settings) : 설치된 플러그인 또는 테마 스타일 변경</li>
+                </ul>
+                <li>관련 단축키</li>
+                <ul>
+                    <li>⭐ 굵게 : `Cmd + B`</li>
+                    <li>⭐ 기울임 : `Cmd + I`</li>
+                    <li>⭐ 하이라이트 : `Cmd + H`</li>
+                    <li>⭐ 취소선 : `Cmd + U`</li>
+                </ul>
+            </ul>
+        </div>
+    </div>
+
+    <h3>테이블</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>장점</th>
+                <th>단점</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>마크다운 기반의 간편한 텍스트 작성</td>
+                <td>마크다운 문법 학습 필요</td>
+            </tr>
+            <tr>
+                <td>로컬 데이터베이스로 빠른 속도와 보안</td>
+                <td>데이터 유실 위험과 동기화 문제</td>
+            </tr>
+            <tr>
+                <td>강력한 플러그인 생태계로 확장성 높음</td>
+                <td>플러그인 관리의 복잡성과 충돌 가능성</td>
+            </tr>
+            <tr>
+                <td>내부 링크와 그래프 뷰로 지식 연결 용이</td>
+                <td>모바일 앱의 제한적 기능</td>
+            </tr>
+            <tr>
+                <td>태그와 검색 기능으로 정보 관리 편리</td>
+                <td>협업 기능의 부재로 팀 프로젝트에 제약</td>
+            </tr>
+            <tr>
+                <td>커스텀 테마와 CSS로 인터페이스 조정 가능</td>
+                <td>멀티미디어 파일 처리의 한계</td>
+            </tr>
+            <tr>
+                <td>오픈소스로 커뮤니티 기반 발전</td>
+                <td>뷰 커스터마이징의 제약</td>
+            </tr>
+            <tr>
+                <td>다양한 템플릿과 자동화 기능</td>
+                <td>초기 학습 곡선과 진입 장벽</td>
+            </tr>
+            <tr>
+                <td>제텔카스텐 등 지식관리 방법론과 호환</td>
+                <td>외부 서비스와의 통합에 제한</td>
+            </tr>
+            <tr>
+                <td>개인화된 워크플로우 구축에 최적화</td>
+                <td>조직 차원의 표준화된 사용에는 한계</td>
+            </tr>
+        </tbody>
+    </table>
+    <p><mark>by Claude3</mark></p>
+    <hr>
+    <div class="callout callout-tip">
+        <div class="callout-title">이미지</div>
+        <div class="callout-content">
+            <!-- 내용 생략 -->
+        </div>
+    </div>
+
+    <h2 class="hiddenlink-heading">Related Links</h2>
+    <h3 class="hiddenlink-heading">Backlinks</h3>
+    <a href="http://facilitate4u.blogspot.com/2024/09/blog-post_52.html" class="backlink hiddenlink">' 코드블럭 테스트.md</a>
+    <h2 class="hiddenlink-heading">Related Links</h2>
+    <h3 class="hiddenlink-heading">Backlinks</h3>
+    <a href="http://facilitate4u.blogspot.com/2024/09/blog-post_52.html" class="backlink hiddenlink">' 코드블럭 테스트.md</a>
+
+    <script>
+        // CodeBlock 복사하기
+
+        document.querySelectorAll('pre:has(code)').forEach(preElement => {
+            // code 요소의 클래스명을 읽어와서 표시할 div 생성
+            const codeElement = preElement.querySelector('code');
+            const className = codeElement.className.replace('language-', '').charAt(0).toUpperCase() + codeElement.className.replace('language-', '').slice(1);
+
+            // 클래스명을 표시하는 요소 생성
+            const classDiv = document.createElement('div');
+            classDiv.className = 'class-name';
+            classDiv.textContent = className;
+            preElement.appendChild(classDiv);
+
+            // 복사 버튼 생성
+            const copyButton = document.createElement('button');
+            copyButton.className = 'copy-btn';
+            copyButton.textContent = '📄 Copy';
+            preElement.appendChild(copyButton);
+
+            // 복사 버튼 클릭 이벤트 리스너 추가
+            copyButton.addEventListener('click', () => {
+                const code = codeElement.innerText.trim();
+
+                navigator.clipboard.writeText(code).then(() => {
+                    // 버튼 텍스트를 '📄 Copied'로 변경
+                    copyButton.textContent = '📄 Copied';
+                    setTimeout(() => {
+                        copyButton.textContent = '📄 Copy'; // 원래 텍스트로 복구
+                    }, 2000); // 2초 후에 텍스트 원래대로 복구
+                }).catch(err => {
+                    console.error('복사 실패:', err);
+                });
+            });
+        });
+    </script>
+     <button id="theme-toggle">Toggle Theme</button>
+     <script>
+         const toggleButton = document.getElementById('theme-toggle');
+         toggleButton.addEventListener('click', () => {
+             const currentTheme = document.documentElement.getAttribute('data-theme');
+             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+             document.documentElement.setAttribute('data-theme', newTheme);
+         });
+     </script>
+</body>
+</html>
