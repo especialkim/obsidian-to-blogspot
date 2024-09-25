@@ -47,13 +47,13 @@ export class MarkdownToHtml {
 
 		const fileContent = await this.app.vault.read(activeFile);
 		let { content, linkDataSet } = await this.markdownPreprocessing.preprocess(fileContent);
-		console.log('linkDataSet', linkDataSet)
 
 		content = content.replace(/==([^=]+)==/g, '<mark>$1</mark>');
 		content = CalloutToHtml.process(content);
 		content = await this.convertToHtml(content);
 		content = this.restructureNestedLists(content);
 		content = this.convertYoutubeLinksToIframes(content);
+		content = this.removeParaWrappingFromImages(content);
 
 		if (this.settings.useHtmlWrapClass) {
 			const className = this.settings.htmlWrapClassName;
@@ -72,11 +72,18 @@ export class MarkdownToHtml {
 		return {title, content, labels, tags, hiddenLinks};
 	}
 
-
-
 	private async convertToHtml(markdown: string): Promise<string> {
         try {
+            marked.setOptions({
+                gfm: true,          // GitHub Flavored Markdown 활성화
+                breaks: true      // 단일 줄바꿈을 <br>로 변환
+            });
+
+			console.log(markdown)
+			console.log(marked.parse(markdown))
             return marked.parse(markdown);
+
+
         } catch (err) {
             throw new Error(`Markdown parsing failed: ${err}`);
         }
@@ -103,6 +110,10 @@ export class MarkdownToHtml {
             return `<div class="youtube-embed-wrapper"><iframe class="youtube-embed" src="${embedUrl}" title="${alt}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
         });
     }
+
+	private removeParaWrappingFromImages(content: string): string {
+		return content.replace(/<p>\s*(<img[^>]+>)\s*<\/p>/g, '$1');
+	}
 
 	private async makeHtmlDocument(htmlBody: string): Promise<string> {
 		return `

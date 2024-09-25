@@ -50,14 +50,25 @@ export class CalloutToHtml {
     }
 
     private static formatCallout(calloutType: string, calloutTitle: string, content: string[]): string[] {
-        // 콜아웃 내용 처리
         const processedContent = this.processCalloutContent(content);
-        // HTML 형식으로 콜아웃 구성
+
+        const processInlineStyles = (text: string): string => {
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/==(.*?)==/g, '<mark>$1</mark>')
+                .replace(/(?<!`)`(?!`)(\S.*?\S|\S)`(?!`)/g, '<code>$1</code>')
+                .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+        };
+
+        const styledTitle = processInlineStyles(calloutTitle || calloutType);
+        const styledContent = processInlineStyles(processedContent);
+
         return [
             `<div class="callout callout-${calloutType.toLowerCase()}">`,
-            `<div class="callout-title">${calloutTitle || calloutType}</div>`,
+            `<div class="callout-title">${styledTitle}</div>`,
             '<div class="callout-content">',
-            processedContent,
+            styledContent,
             '</div>',
             '</div>',
             ''
@@ -71,31 +82,17 @@ export class CalloutToHtml {
         let minIndent = Infinity;
 
         // 최소 들여쓰기 찾기
-        // console.log('Starting to find minimum indent');
         for (const line of content) {
-            // console.log('Processing line:', line);
             const match = line.match(/^(\s*)>?\s*-/);
             if (match) {
-                const indent = match[1].length;
-                // console.log('Found list item. Indent:', indent);
-                minIndent = Math.min(minIndent, indent);
-                // console.log('Updated minIndent:', minIndent);
-            } else {
-                // console.log('Not a list item');
+                minIndent = Math.min(minIndent, match[1].length);
             }
         }
 
-        if (minIndent === Infinity) {
-            // console.log('No indent found, setting minIndent to 0');
-            minIndent = 0;
-        } else {
-            // console.log('Final minIndent:', minIndent);
-        }
-
-        // console.log('Minimum indent:', minIndent);
+        minIndent = minIndent === Infinity ? 0 : minIndent;
 
         for (const line of content) {
-            const cleanedLine = line.replace(/^>\s*/, '');  // '>' 문자와 그 뒤의 공백 제거
+            const cleanedLine = line.replace(/^>\s*/, '');
             const strippedLine = cleanedLine.trimStart();
 
             if (!strippedLine) {
@@ -115,20 +112,15 @@ export class CalloutToHtml {
                 const indent = cleanedLine.length - strippedLine.length;
                 const item = strippedLine.slice(1).trim();
                 const indentLevel = Math.max(0, Math.floor((indent - minIndent))) + 1;
-                
-                // console.log('Current item:', item, 'Indent:', indent, 'MinIndent:', minIndent, 'Indent level:', indentLevel);
 
-                // 현재 레벨에 맞게 목록 구조 조정
-                if (listStack.length > indentLevel) {
-                    while (listStack.length > indentLevel) {
-                        listStack.pop();
-                        processedContent.push('</ul>');
-                    }
-                } else if (listStack.length < indentLevel) {
-                    while (listStack.length < indentLevel) {
-                        processedContent.push('<ul>');
-                        listStack.push(listStack.length);
-                    }
+                // 목록 구조 조정
+                while (listStack.length > indentLevel) {
+                    listStack.pop();
+                    processedContent.push('</ul>');
+                }
+                while (listStack.length < indentLevel) {
+                    processedContent.push('<ul>');
+                    listStack.push(listStack.length);
                 }
 
                 let processedItem = item;

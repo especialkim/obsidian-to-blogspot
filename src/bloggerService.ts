@@ -34,7 +34,6 @@ export class BloggerService {
     }
 
     public async publish(): Promise<void> {
-
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile) {
             new Notice('No active file');
@@ -45,119 +44,137 @@ export class BloggerService {
             const accessToken = await this.getAccessToken();
             const htmlBundle = await this.markdownToHtml.markdownToHtmlBundle();
 
-            const title = htmlBundle.title;
-            let content = htmlBundle.content;
-            const hiddenLinks = htmlBundle.hiddenLinks;
-
-            let labels = htmlBundle.labels;
-            const tags = htmlBundle.tags;
-
-            if (!this.settings.useOutlinksForLabels) {
-                labels = tags.map(tag => tag.replace("#", ''));
-            }else{
-                labels = labels.map(label => label.replace(this.settings.labelPrefixes + ' ', ''));
-            }
+            const { title, content, labels, tags } = this.extractContentData(htmlBundle);
+            const processedLabels = this.processLabels(labels, tags);
 
             const frontMatter = await this.getFrontMatter(activeFile);
-
-            // frontmatter를 확인하고 초기화
-            let blogAlias = frontMatter?.blogAlias || '';
-            let blogId = frontMatter?.blogId || '';
-            let blogUrl = frontMatter?.blogUrl || '';
-            let blogType = frontMatter?.blogType || 'post';
-            let blogTitle = frontMatter?.blogTitle || title.replace(/\.[^/.]+$/, ""); // Remove file extension from title
-            let blogArticleId = frontMatter?.blogArticleId || '';
-            let blogArticleUrl = frontMatter?.blogArticleUrl || ''; // 이 줄을 추가합니다
-            let blogLabels = frontMatter?.blogLabels || labels.join(', ');
-            let blogIsDraft = frontMatter?.blogIsDraft || 'false';
-            let blogPublished = frontMatter?.blogPublished || '';
-            let blogUpdated = frontMatter?.blogUpdated || '';
-
-            const initialModalData: PostSettings = {
-                blogAlias: blogAlias,
-                blogId: blogId,
-                blogUrl: blogUrl,
-                blogType: blogType as 'post' | 'page',
-                blogTitle: blogTitle,
-                blogArticleId: blogArticleId,
-                blogArticleUrl: blogArticleUrl,
-                blogLabels: blogLabels,
-                blogIsDraft: blogIsDraft as 'true' | 'false',
-                blogPublished: blogPublished,
-                blogUpdated: blogUpdated,
-            };
+            const initialModalData = this.initializeFrontMatter(frontMatter, title, processedLabels);
 
             const updatedSettings = await this.openPostSettingsModal(initialModalData);
-
             if (updatedSettings === null) {
-                // User closed the modal without submitting
                 new Notice('Publishing cancelled');
                 return;
             }
 
-            let bloggerResponse;
-
-            if (frontMatter === null || !updatedSettings.blogArticleId) {
-                // 프론트매터가 없거나 BlogArticleId가 없는 경우 (새 포스트/페이지 생성)
-                if (updatedSettings.blogType === 'post') {
-                    bloggerResponse = await this.createBloggerPost(
-                        updatedSettings.blogId,
-                        updatedSettings.blogTitle,
-                        content,
-                        updatedSettings.blogLabels ? updatedSettings.blogLabels.split(',').map(label => label.trim()).filter(label => label !== '') : [],
-                        updatedSettings.blogIsDraft,
-                        accessToken
-                    );
-                } else if (updatedSettings.blogType === 'page') {
-                    bloggerResponse = await this.createBloggerPage(
-                        updatedSettings.blogId,
-                        updatedSettings.blogTitle,
-                        content,
-                        accessToken
-                    );
-                }
-            } else {
-                // 프론트매터에 BlogArticleId가 있는 경우 (기존 포스트/페이지 업데이트)
-                if (updatedSettings.blogType === 'post') {
-                    bloggerResponse = await this.updateBloggerPost(
-                        updatedSettings.blogId,
-                        updatedSettings.blogArticleId,
-                        updatedSettings.blogTitle,
-                        content,
-                        updatedSettings.blogLabels.split(',').map(label => label.trim()),
-                        updatedSettings.blogIsDraft,
-                        accessToken
-                    );
-                } else if (updatedSettings.blogType === 'page') {
-                    bloggerResponse = await this.updateBloggerPage(
-                        updatedSettings.blogId,
-                        updatedSettings.blogArticleId,
-                        updatedSettings.blogTitle,
-                        content,
-                        accessToken
-                    );
-                }
-            }
+            const bloggerResponse = await this.handleBloggerResponse(frontMatter, updatedSettings, content, accessToken);
 
             const newFrontmatter = this.makeFrontmatterData(bloggerResponse, updatedSettings.blogAlias, updatedSettings.blogType);
-            
             await updateFrontmatter(activeFile, this.vault, newFrontmatter);
 
             new Notice('Upload completed successfully.');
-
-            if (this.settings.openBrowserAfterPublish) {
-                if (bloggerResponse.url) {
-                    const { shell } = require('electron');
-                    shell.openExternal(bloggerResponse.url);
-                    new Notice('Opening published post in browser.');
-                } else {
-                    new Notice('Unable to open post: URL not available.');
-                }
-            }
+            await this.handlePostPublish(bloggerResponse);
 
         } catch (error) {
             console.error('Error publishing to Blogspot:', error);
             new Notice('Error publishing to Blogspot. Check console for details.');
+        }
+    }
+
+    private extractContentData(htmlBundle: any) {
+        const title = htmlBundle.title;
+        const content = htmlBundle.content;
+        const labels = htmlBundle.labels;
+        const tags = htmlBundle.tags;
+        return { title, content, labels, tags };
+    }
+
+    private processLabels(labels: string[], tags: string[]): string[] {
+        if (!this.settings.useOutlinksForLabels) {
+            return tags.map(tag => tag.replace("#", ''));
+        } else {
+            return labels.map(label => label.replace(this.settings.labelPrefixes + ' ', ''));
+        }
+    }
+
+    private initializeFrontMatter(frontMatter: Record<string, string> | null, title: string, labels: string[]): PostSettings {
+        const blogAlias = frontMatter?.blogAlias || '';
+        const blogId = frontMatter?.blogId || '';
+        const blogUrl = frontMatter?.blogUrl || '';
+        const blogType = frontMatter?.blogType || 'post';
+        const blogTitle = frontMatter?.blogTitle || title.replace(/\.[^/.]+$/, ""); // Remove file extension from title
+        const blogArticleId = frontMatter?.blogArticleId || '';
+        const blogArticleUrl = frontMatter?.blogArticleUrl || '';
+        const blogLabels = frontMatter?.blogLabels || labels.join(', ');
+        const blogIsDraft = frontMatter?.blogIsDraft || 'false';
+        const blogPublished = frontMatter?.blogPublished || '';
+        const blogUpdated = frontMatter?.blogUpdated || '';
+
+        return {
+            blogAlias,
+            blogId,
+            blogUrl,
+            blogType: blogType as 'post' | 'page',
+            blogTitle,
+            blogArticleId,
+            blogArticleUrl,
+            blogLabels,
+            blogIsDraft: blogIsDraft as 'true' | 'false',
+            blogPublished,
+            blogUpdated,
+        };
+    }
+
+    private async handleBloggerResponse(frontMatter: Record<string, string> | null, updatedSettings: PostSettings, content: string, accessToken: string) {
+        if (frontMatter === null || !updatedSettings.blogArticleId) {
+            return await this.createNewBlogPostOrPage(updatedSettings, content, accessToken);
+        } else {
+            return await this.updateExistingBlogPostOrPage(updatedSettings, content, accessToken);
+        }
+    }
+
+    private async createNewBlogPostOrPage(updatedSettings: PostSettings, content: string, accessToken: string) {
+        if (updatedSettings.blogType === 'post') {
+            return await this.createBloggerPost(
+                updatedSettings.blogId,
+                updatedSettings.blogTitle,
+                content,
+                updatedSettings.blogLabels ? updatedSettings.blogLabels.split(',').map(label => label.trim()).filter(label => label !== '') : [],
+                updatedSettings.blogIsDraft,
+                accessToken
+            );
+        } else if (updatedSettings.blogType === 'page') {
+            return await this.createBloggerPage(
+                updatedSettings.blogId,
+                updatedSettings.blogTitle,
+                content,
+                accessToken
+            );
+        }
+        throw new Error('Unsupported blog type');
+    }
+
+    private async updateExistingBlogPostOrPage(updatedSettings: PostSettings, content: string, accessToken: string) {
+        if (updatedSettings.blogType === 'post') {
+            return await this.updateBloggerPost(
+                updatedSettings.blogId,
+                updatedSettings.blogArticleId,
+                updatedSettings.blogTitle,
+                content,
+                updatedSettings.blogLabels.split(',').map(label => label.trim()),
+                updatedSettings.blogIsDraft,
+                accessToken
+            );
+        } else if (updatedSettings.blogType === 'page') {
+            return await this.updateBloggerPage(
+                updatedSettings.blogId,
+                updatedSettings.blogArticleId,
+                updatedSettings.blogTitle,
+                content,
+                accessToken
+            );
+        }
+        throw new Error('Unsupported blog type');
+    }
+
+    private async handlePostPublish(bloggerResponse: any) {
+        if (this.settings.openBrowserAfterPublish) {
+            if (bloggerResponse.url) {
+                const { shell } = require('electron');
+                shell.openExternal(bloggerResponse.url);
+                new Notice('Opening published post in browser.');
+            } else {
+                new Notice('Unable to open post: URL not available.');
+            }
         }
     }
 
@@ -172,7 +189,7 @@ export class BloggerService {
 
     private async getFrontMatter(file: TFile): Promise<Record<string, string> | null> {
         const fileContent = await this.vault.read(file);
-        const frontMatterRegex = /---([\s\S]*?)---/m;
+        const frontMatterRegex = /^---\s*\n([\s\S]*?)\n---/m;
         const match = frontMatterRegex.exec(fileContent);
 
         if (match) {
@@ -346,4 +363,6 @@ export class BloggerService {
 
         return bloggerFrontmatter;
     }
+
+    // Additional helper methods can be defined below to further modularize the code
 }
