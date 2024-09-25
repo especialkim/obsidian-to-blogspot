@@ -18,3 +18,16 @@ export interface HtmlBundle {
     hiddenLinks: string;
 }
 
+export interface BloggerFrontmatter {
+    blogAlias: string;
+    blogId: string;
+    blogUrl: string;
+    blogType: string;
+    blogTitle: string;
+    blogArticleId: string;
+    blogArticleUrl: string;
+    blogLabels: string;
+    blogIsDraft: string;
+    blogPublished: string;
+    blogUpdated: string;
+}

@@ -139,9 +139,9 @@ export class MarkdownPreprocessing {
 
         if (file instanceof TFile) {
             const metadata = this.app.metadataCache.getFileCache(file);
-            const postUrl = metadata?.frontmatter?.PostUrl;
-            if (postUrl) {
-                return `**[${linkText}](${postUrl})**`;
+            const blogArticleUrl = metadata?.frontmatter?.blogArticleUrl;
+            if (blogArticleUrl) {
+                return `**[${linkText}](${blogArticleUrl})**`;
             }
         }
         return `**${linkText}**`;

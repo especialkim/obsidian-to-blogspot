@@ -6,18 +6,22 @@ export interface PostSettings {
     blogType: 'post' | 'page';
     blogTitle: string;
     blogLabels: string;
-    blogVisibility: 'true' | 'false';
     blogUrl: string;
     blogId: string;
     blogArticleId: string;
+    blogArticleUrl: string;
+    blogIsDraft: 'true' | 'false';
+    blogPublished: string;
+    blogUpdated: string;
 }
 
 export class PostSettingsModal extends Modal {
     private settings: MyPluginSettings;
     private modalData: PostSettings;
-    private onSubmit: (resultData: PostSettings) => void;
+    private onSubmit: (resultData: PostSettings | null) => void;
+    private submitted: boolean = false;
 
-    constructor(app: App, settings: MyPluginSettings, modalData: PostSettings, onSubmit: (resultData: PostSettings) => void) {
+    constructor(app: App, settings: MyPluginSettings, modalData: PostSettings, onSubmit: (resultData: PostSettings | null) => void) {
         super(app);
         this.modalData = modalData;
         this.onSubmit = onSubmit;
@@ -93,24 +97,28 @@ export class PostSettingsModal extends Modal {
             });
 
         new Setting(contentEl)
-            .setName('Visibility')
-            .setDesc('Select the visibility of the post')
+            .setName('Draft Status')
+            .setDesc('Should this be a draft? Default is false.')
             .addDropdown(dropdown => {
-                dropdown.addOption('true', 'True');
-                dropdown.addOption('false', 'False');
-                dropdown.setValue(this.modalData.blogVisibility);
+                dropdown.addOption('false', 'No');
+                dropdown.addOption('true', 'Yes');
+                dropdown.setValue(this.modalData.blogIsDraft);
                 dropdown.onChange(value => {
-                    this.modalData.blogVisibility = value as 'true' | 'false';
+                    this.modalData.blogIsDraft = value as 'true' | 'false';
                 });
             });
 
         contentEl.createEl('button', { text: 'Submit' }).addEventListener('click', () => {
+            this.submitted = true;
             this.onSubmit(this.modalData);
             this.close();
         });
     }
 
     onClose() {
+        if (!this.submitted) {
+            this.onSubmit(null);
+        }
         const { contentEl } = this;
         contentEl.empty();
     }

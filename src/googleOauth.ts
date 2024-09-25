@@ -21,13 +21,11 @@ export class GoogleOauth {
             const token = JSON.parse(tokenContent);
             
             if (token.expiry_date && token.expiry_date > Date.now()) {
-                console.log('Using existing valid tokens');
                 return { 
                     access_token: token.access_token, 
                     refresh_token: token.refresh_token 
                 };
             } else if (token.refresh_token) {
-                console.log('Refreshing access token');
                 const newAccessToken = await this.refreshAccessToken(token.refresh_token);
                 return { 
                     access_token: newAccessToken, 
@@ -35,13 +33,10 @@ export class GoogleOauth {
                 };
             }
         } catch (error) {
-            console.log('No existing token found or token is invalid:', error);
         }
         
-        console.log('Requesting new tokens');
         const newAccessToken = await this.requestAccessToken();
         const newTokenPath = this.getTokenPath();
-        console.log('New tokens received. Token path:', newTokenPath);
         return {
             access_token: newAccessToken,
             refresh_token: null

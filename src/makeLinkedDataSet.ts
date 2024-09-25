@@ -50,13 +50,23 @@ export class MakeLinkedDataSet {
     }
 
     private getOutlinksFromCache(fileCache: CachedMetadata): string[] {
-        const fromtmatterLinks = fileCache.frontmatterLinks?.map(link => link.link);
-        const contentLinks = fileCache.links?.map(link => link.link);
+        const fromtmatterLinks = fileCache.frontmatterLinks?.map(link => this.addExtension(link.link));
+        const contentLinks = fileCache.links?.map(link => this.addExtension(link.link));
         const outlinks = [...(fromtmatterLinks ?? []), ...(contentLinks ?? [])];
         const filteredOutlinks = this.filterLinks(outlinks);    
         return filteredOutlinks;
     }
     
+    private addExtension(link: string): string {
+        // 이미 확장자가 있는 경우 그대로 반환
+        if (link.includes('.')) {
+            return link;
+        }
+        
+        // Obsidian의 기본 노트 확장자인 .md를 추가
+        return `${link}.md`;
+    }
+
     private getLabelsFromCache(fileCache: CachedMetadata): string[] {
         const contentLinks = fileCache.links?.map(link => link.link) ?? [];
         const labels = contentLinks.filter(link => 
@@ -78,6 +88,10 @@ export class MakeLinkedDataSet {
         return Array.from(new Set(filteredTags));
     }
 
+    private removeExtension(filename: string): string {
+        return filename.replace(/\.[^/.]+$/, "");
+    }
+
     makeConnectionDataSet(): LinkDataSet {
         const file = this.app.workspace.getActiveFile();
         if (!file) {
@@ -97,8 +111,9 @@ export class MakeLinkedDataSet {
             .map(filename => {
                 const file = this.app.vault.getAbstractFileByPath(filename);
                 if (!(file instanceof TFile)) return null;
-                const postUrl = this.app.metadataCache.getFileCache(file)?.frontmatter?.PostUrl;
-                return postUrl ? `<a href="${postUrl}" class="backlink hiddenlink">${file.name}</a>` : null;
+                const blogArticleUrl = this.app.metadataCache.getFileCache(file)?.frontmatter?.blogArticleUrl;
+                const displayName = this.removeExtension(file.name);
+                return blogArticleUrl ? `<a href="${blogArticleUrl}" class="backlink hiddenlink hidden">${displayName}</a>` : null;
             })
             .filter(link => link !== null)
             .join('\n');
@@ -107,8 +122,9 @@ export class MakeLinkedDataSet {
             .map(filename => {
                 const file = this.app.vault.getAbstractFileByPath(filename);
                 if (!(file instanceof TFile)) return null;
-                const postUrl = this.app.metadataCache.getFileCache(file)?.frontmatter?.PostUrl;
-                return postUrl ? `<a href="${postUrl}" class="outlink hiddenlink">${file.name}</a>` : null;
+                const blogArticleUrl = this.app.metadataCache.getFileCache(file)?.frontmatter?.blogArticleUrl;
+                const displayName = this.removeExtension(file.name);
+                return blogArticleUrl ? `<a href="${blogArticleUrl}" class="outlink hiddenlink hidden">${displayName}</a>` : null;
             })
             .filter(link => link !== null)
             .join('\n');

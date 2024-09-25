@@ -5,7 +5,6 @@ export class MermaidService {
     constructor(private markdownPreprocessing: MarkdownPreprocessing) {}
 
     async renderToSvg(code: string, alt: string): Promise<string> {
-        console.log('MermaidService: Rendering mermaid code to SVG');
         
         try {
             // Mermaid 초기화 및 CSS 설정
@@ -27,7 +26,6 @@ export class MermaidService {
             await this.markdownPreprocessing.getVaultAdapter().write(tempFileName, svg);
 
             // 임시 파일을 ���로드하고 URL 얻기
-            console.log('tempFileName: ', tempFileName);
             const imageUrl = await this.markdownPreprocessing.uploadAndReplaceImage(tempFileName);
 
             // 임시 파일 삭제

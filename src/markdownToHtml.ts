@@ -47,6 +47,7 @@ export class MarkdownToHtml {
 
 		const fileContent = await this.app.vault.read(activeFile);
 		let { content, linkDataSet } = await this.markdownPreprocessing.preprocess(fileContent);
+		console.log('linkDataSet', linkDataSet)
 
 		content = content.replace(/==([^=]+)==/g, '<mark>$1</mark>');
 		content = CalloutToHtml.process(content);
@@ -68,7 +69,6 @@ export class MarkdownToHtml {
 		if (this.settings.makeLinksDataSet){
 			content = content + hiddenLinks;
 		}
-
 		return {title, content, labels, tags, hiddenLinks};
 	}
 
@@ -137,12 +137,9 @@ export class MarkdownToHtml {
 		const fileName = 'output.html';
 		const filePath = normalizePath(fileName);
 		
-		console.log('filePath:', filePath);
-
 		try {
 			// Create or overwrite the HTML file in the vault
 			await this.app.vault.adapter.write(filePath, html);
-			console.log('File written successfully');
 		} catch (error) {
 			console.error('Error writing file:', error);
 		}
