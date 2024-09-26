@@ -50,7 +50,8 @@ export class MarkdownToHtml {
 		content = content.replace(/==([^=]+)==/g, '<mark>$1</mark>');
 		content = this.convertLatexToHtml(content);
 
-		content = CalloutToHtml.process(content);
+		content = await CalloutToHtml.advancedProcess(content, this.markdownPreprocessing, this);
+		// content = await CalloutToHtml.process(content);
 		content = await this.convertToHtml(content);
 		content = this.restructureNestedLists(content);
 		content = this.convertYoutubeLinksToIframes(content);
@@ -73,15 +74,13 @@ export class MarkdownToHtml {
 		return {title, content, labels, tags, hiddenLinks};
 	}
 
-	private async convertToHtml(markdown: string): Promise<string> {
+	public async convertToHtml(markdown: string): Promise<string> {
         try {
             marked.setOptions({
                 gfm: true,          // GitHub Flavored Markdown 활성화
                 breaks: true      // 단일 줄바꿈을 <br>로 변환
             });
 
-			console.log(markdown)
-			console.log(marked.parse(markdown))
             return marked.parse(markdown);
 
 
@@ -90,7 +89,7 @@ export class MarkdownToHtml {
         }
     }
 
-	private restructureNestedLists(html: string): string {
+	public restructureNestedLists(html: string): string {
         // console.log('Before restructuring:', html);
 
         // 1. <li>{텍스트}<ul> 또는 <li>{텍스트}<ol>를 <li>{텍스트}</li><ul> 또는 <li>{텍스트}</li><ol>로 변경 (이미 </li>가 있는 경우 제외)
@@ -104,7 +103,7 @@ export class MarkdownToHtml {
         return html;
     }
 
-    private convertYoutubeLinksToIframes(html: string): string {
+    public convertYoutubeLinksToIframes(html: string): string {
         const youtubeRegex = /<img\s+src="(https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)(\S*))"\s+alt="(.*)"\s*\/?>/g;
         return html.replace(youtubeRegex, (match, url, _, __, videoId, params, alt) => {
             const embedUrl = `https://www.youtube.com/embed/${videoId}${params}`;
@@ -112,7 +111,7 @@ export class MarkdownToHtml {
         });
     }
 
-	private removeParaWrappingFromImages(content: string): string {
+	public removeParaWrappingFromImages(content: string): string {
 		return content.replace(/<p>\s*(<img[^>]+>)\s*<\/p>/g, '$1');
 	}
 
@@ -666,7 +665,7 @@ pre:has(code) code {
     padding: 10px 15px;
     font-size: 0.9em;
     line-height: 1.3;
-    color: var(--color-blockquote-font);
+    color: #EBEBEB;
     background-color: initial;
 }
 
@@ -722,17 +721,19 @@ ol {
 ol > li {
     counter-increment: item;
     position: relative;
-    list-style: none;
+    /* list-style: none; */
     margin-left: var(--list-indent);
     padding-top: var(--list-spacing);
     padding-bottom: var(--list-spacing);
 }
 
+/*
 ol > li::before {
     content: counter(item) ". ";
     position: absolute;
     left: -17px;
 }
+*/
 
 ol > li, ul > li {
     padding-top: 2px;
@@ -857,6 +858,82 @@ tbody tr:nth-child(odd) {
     padding: 10px 15px;
     color: var(--blockquote-color);
     font-size: 0.95em;
+}
+
+.callout p {
+    margin-top: 0;
+}
+.callout ul {
+    margin: 0;
+}
+
+.callout.callout-flex:has(img) {
+  border: 0;
+}
+
+.callout.callout-flex:has(img) .callout-title {
+  display: none;
+}
+
+.callout.callout-flex:not(:has(img)) .callout-content {
+  justify-content: flex-start;
+  gap: 30px;
+}
+
+.callout.callout-flex .callout-content {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+  
+.callout.callout-flex .callout-content:has(img) {
+  padding: 0;
+  background-color: transparent;
+}
+
+.callout.callout-flex .callout-content:has(img) p {
+    flex-basis: fit-content;
+}
+
+.callout.callout-flex .callout-content:has(img) {
+    --max-height: max(20vh, 300px);
+}
+
+.callout.callout-flex .callout-content:has(img) img {
+    display: block;
+    max-width: 100%;
+    height: 100%;
+    max-height: var(--max-height);
+    width: auto;
+    object-fit: scale-down;
+}
+
+.callout.callout-flex .callout-content:has(img) > p{
+    margin-bottom: 0;
+    padding: 10px 0px;
+    max-height: var(--max-height);
+    overflow: hidden;
+}
+
+.callout.callout-flex .callout-content:has(p) > ul {
+    display: flex;
+    gap: 30px;
+}
+
+.callout.callout-flex .callout-content:has(p) > ul > li > p {
+  font-weight: var(--text-weight-bold);
+  margin-bottom: 0;
+}
+
+.youtube-embed-wrapper{
+	display: flex;
+	justify-content: center;
+}
+
+.youtube-embed-wrapper > .youtube-embed{
+	aspect-ratio: 16 / 9;
+	width: 100%;
+	max-width: 70%;
 }
 
 /* 버튼 스타일 */

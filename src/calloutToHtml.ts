@@ -1,8 +1,63 @@
+import { MarkdownPreprocessing } from './markdownPreprocessing';
+import { MarkdownToHtml } from './markdownToHtml';
+
 export class CalloutToHtml {
     // 콜아웃 시작을 감지하는 정규표현식
     private static CALLOUT_RE = /^>\s?\[!(\w+)\]\s*(.*?)$/;
     // 목록 항목을 감지하는 정규표현식
     private static LIST_RE = /^(\s*)-\s*(.*)$/;
+
+    static async advancedProcess(
+        markdown: string,
+        markdownPreprocessing: MarkdownPreprocessing,
+        markdownToHtml: MarkdownToHtml
+    ): Promise<string> {
+        const calloutPattern = /> \[!(.*?)\]( .*?)?\n([\s\S]*?)(?=\n\n|$)/g;
+
+        const processedContent = await this.replaceAsync(markdown, calloutPattern, async (match, calloutType, calloutName, calloutContent) => {
+            const type = calloutType.trim();
+            const name = calloutName ? calloutName.trim() : ''; // 타이틀이 없는 경우 빈 문자열로 처리
+            let content = calloutContent
+                .split('\n')
+                .map((line: string) => line.replace(/^>\s?/, ''))
+                .join('\n')
+                .replace(/\n{2,}/g, '\n\n'); // Ensure that multiple newlines are preserved
+            
+            console.log(content);
+
+            // Apply markdown preprocessing
+            content = await markdownPreprocessing.processImageLinks(content);
+            content = await markdownPreprocessing.processInternalLinks(content);
+            content = await markdownPreprocessing.processCodeblocks(content);
+            content = markdownPreprocessing.processObsidianSyntax(content);
+            
+            // Convert to HTML and apply post-processing
+            content = await markdownToHtml.convertToHtml(content);
+            content = markdownToHtml.restructureNestedLists(content);
+            content = markdownToHtml.convertYoutubeLinksToIframes(content);
+            content = content.replace(/<p>(<img[^>]+>)<\/p>/g, '<div>$1</div>');
+
+            // Generate HTML structure
+            const htmlCallout = `<div class="callout callout-${type.toLowerCase()}">`;
+            const htmlCalloutTitle = `<div class="callout-title">${name || type}</div>`;
+            const htmlCalloutContent = `<div class="callout-content">${content}</div>`;
+
+            return `${htmlCallout}\n${htmlCalloutTitle}\n${htmlCalloutContent}\n</div>`;
+        });
+
+        return processedContent;
+    }
+
+    private static async replaceAsync(str: string, regex: RegExp, asyncFn: (...args: string[]) => Promise<string>): Promise<string> {
+        const promises: Promise<string>[] = [];
+        str.replace(regex, (match, ...args) => {
+            const promise = asyncFn(match, ...args);
+            promises.push(promise);
+            return match;
+        });
+        const data = await Promise.all(promises);
+        return str.replace(regex, () => data.shift() || '');
+    }
 
     static process(content: string): string {
         const lines = content.split('\n');
@@ -150,5 +205,14 @@ export class CalloutToHtml {
         }
 
         return processedContent.join('\n');
+    }
+
+    private static applyInlineStyles(text: string): string {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/==(.*?)==/g, '<mark>$1</mark>')
+            .replace(/(?<!`)`(?!`)(\S.*?\S|\S)`(?!`)/g, '<code>$1</code>')
+            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
     }
 }

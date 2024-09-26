@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>콜아웃 테스트 페이지</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px auto;
+            max-width: 800px;
+        }
+        .callout {
+            border-left: 4px solid;
+            padding: 10px 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .callout-info {
+            border-color: #17a2b8;
+            background-color: #e9f7fa;
+        }
+        .callout-warning {
+            border-color: #ffc107;
+            background-color: #fff4e5;
+        }
+        .callout-note {
+            border-color: #6c757d;
+            background-color: #f8f9fa;
+        }
+        .callout-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .callout-content {
+            margin-left: 10px;
+        }
+        h2 {
+            color: #333;
+        }
+
+        .callout-flex .callout-content {
+            display: flex;
+            gap: 10px;
+        }
+
+        .callout-content:has(img) p {
+            flex-basis: fit-content;
+        }
+
+        .callout-flex .callout-content:has(img) {
+            --max-height: 25vh;
+        }
+
+        .callout-flex .callout-content:has(img) img {
+            display: block;
+            max-width: 100%;
+            height: 100%;
+            max-height: var(--max-height);
+            width: auto;
+            object-fit: scale-down;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>콜아웃 테스트 페이지</h1>
+
+    <div class="tab-content" id="sectionTabs">
+        <header class="article-header">
+        <div class="article-title">
+        <a href="https://lucy-vault.blogspot.com/2024/09/callout-flex.html">Callout Flex.md</a><a class="comment-link" href="https://lucy-vault.blogspot.com/2024/09/callout-flex.html#comments" onclick="">(0)
+                </a>
+        </div>
+        </header>
+        <section class="article-content">
+        <h2 id="heading-0">Callout Flex - Text</h2>
+        <div class="callout callout-flex">
+        <div class="callout-title">Title</div>
+        <div class="callout-content"><p>테스트입니다.</p>
+        <p>테스트입니다.</p>
+        </div>
+        </div>
+        
+        <h2 id="heading-1">Callout Flex - List</h2>
+        <div class="callout callout-flex">
+        <div class="callout-title">Title</div>
+        <div class="callout-content"><ul>
+        <li><p>Hello</p>
+        <ul>
+        <li>Hello</li>
+        <li>Hello</li>
+        </ul>
+        </li><li><p>Hi</p>
+        <ul>
+        <li>Hi</li>
+        <li>Hi</li>
+        </ul>
+        </li></ul>
+        </div>
+        </div>
+        
+        <h2 id="heading-2">Callout Flex - Image</h2>
+        <div class="callout callout-flex">
+        <div class="callout-title">Image</div>
+        <div class="callout-content">
+        <p><img alt="개1" loading="lazy" src="https://image.dongascience.com/Photo/2017/10/15088140080133.jpg" style=""></p>
+        <p><img alt="개2" loading="lazy" src="https://cdn.edujin.co.kr/news/photo/202007/33451_61410_5236.jpg"></p>
+        <p><img alt="개3" loading="lazy" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwrXoqS2ZKQtVemZscbH7B9YBA6zmrCaaMIw&amp;s"></p>
+        </div>
+        </div>
+        <section class="comments embed" data-num-comments="0" id="comments">
+        <a name="comments"></a>
+        <h2 class="title" id="heading-3">💬 댓글</h2>
+        <div id="Blog1_comments-block-wrapper">
+        </div>
+        <div class="footer">
+        <div class="comment-form">
+        <a name="comment-form"></a>
+        <a href="https://www.blogger.com/comment/frame/2217812507061475700?po=1212504480222750786&amp;hl=ko&amp;blogspotRpcToken=8760576" id="comment-editor-src"></a>
+        <iframe allowtransparency="allowtransparency" class="blogger-iframe-colorize blogger-comment-from-post" frameborder="0" height="66px" id="comment-editor" name="comment-editor" src="https://www.blogger.com/comment/frame/2217812507061475700?po=1212504480222750786&amp;hl=ko&amp;blogspotRpcToken=8760576#%7B%22color%22%3A%22rgb(192%2C%20192%2C%20192)%22%2C%22backgroundColor%22%3A%22rgba(6%2C%2013%2C%2018%2C%200.3)%22%2C%22unvisitedLinkColor%22%3A%22rgb(226%2C%20173%2C%2029)%22%2C%22fontFamily%22%3A%22%5C%22Pretendard%20Variable%5C%22%2C%20Pretendard%22%7D" width="100%" data-resized="true"></iframe>
+        <script src="https://www.blogger.com/static/v1/jsbin/1466990918-comment_from_post_iframe.js" type="text/javascript"></script>
+        <script type="text/javascript">
+              BLOG_CMT_createIframe('https://www.blogger.com/rpc_relay.html');
+            </script>
+        </div>
+        </div>
+        </section>
+        </section>
+        </div>
+
+    <div id="output"></div>
+
+    <script>
+        const markdown = `
+## Callout Example - Text
+
+> [!Info] Information
+> This is some information content.
+> 
+> Another line of information.
+
+## Callout Example - Warning
+
+> [!Warning] Attention
+> - Be careful!
+> - Check your steps carefully.
+> 
+> Remember to save your work!
+
+## Callout Example - No Title
+
+> [!Note] 
+> Here is a note without a title line.
+> More content for the note.
+`;
+
+        // 콜아웃 패턴을 찾기 위한 정규식
+        const calloutPattern = /> \[!(.*?)\] (.*?)\n([\s\S]*?)(?=\n\n|$)/g;
+
+        // 콜아웃을 추출하고 필요한 부분을 대체할 수 있도록 설정
+        const processedContent = markdown.replace(calloutPattern, (match, calloutType, calloutName, calloutContent) => {
+            const type = calloutType.trim();
+            const name = calloutName.trim();
+            const content = calloutContent
+                .split('\n')
+                .map((line) => line.replace(/^>\s?/, '')) // 각 줄에서 '>' 또는 '> ' 제거
+                .join('\n');
+
+            // HTML 구조 생성
+            let htmlCallout = `<div class="callout callout-${type.toLowerCase()}">`;
+            let htmlCalloutTitle;
+            let htmlCalloutContent = `<div class="callout-content">${content}</div>`;
+
+            // 타이틀이 있는 경우와 없는 경우 처리
+            if (name) {
+                htmlCalloutTitle = `<div class="callout-title">${name}</div>`;
+            } else {
+                htmlCalloutTitle = `<div class="callout-title">${type}</div>`;
+            }
+
+            // HTML로 변환된 콜아웃 반환
+            return `${htmlCallout}\n${htmlCalloutTitle}\n${htmlCalloutContent}\n</div>`;
+        });
+
+        // 마크다운의 다른 부분(헤더 등)을 간단하게 변환
+        const htmlContent = processedContent.replace(/## (.*?)\n/g, '<h2>$1</h2>');
+
+        // 결과를 페이지에 삽입
+        document.getElementById('output').innerHTML = htmlContent;
+    </script>
+
+</body>
+</html>

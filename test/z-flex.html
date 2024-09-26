@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>이미지 나란히 배치하기</title>
+    <style>
+        .callout-content {
+            display: flex;
+            gap: 10px;
+            overflow: hidden;
+            width: 800px;
+            box-sizing: border-box;
+        }
+
+        .callout-content img {
+            flex: 1 1 0;
+            max-width: 100%;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* 추가 스타일: 부모 div의 크기를 보기 쉽게 설정 */
+        .callout-content {
+            width: 80%; /* 예시로 80% 너비 설정 */
+            margin: 0 auto; /* 가운데 정렬 */
+            border: 1px solid #ccc; /* 테두리 추가 */
+            padding: 10px; /* 내부 여백 추가 */
+        }
+    </style>
+</head>
+<body>
+    <div class="callout-content">
+        <img alt="개1" loading="lazy" src="https://image.dongascience.com/Photo/2017/10/15088140080133.jpg">
+        <img alt="개2" loading="lazy" src="https://cdn.edujin.co.kr/news/photo/202007/33451_61410_5236.jpg">
+        <img alt="개3" loading="lazy" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwrXoqS2ZKQtVemZscbH7B9YBA6zmrCaaMIw&amp;s">
+    </div>
+</body>
+</html>

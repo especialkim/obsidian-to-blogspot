@@ -33,7 +33,7 @@ export class MarkdownPreprocessing {
         return { content, linkDataSet };
     }
 
-    private removeFrontmatter(content: string): string {
+    public removeFrontmatter(content: string): string {
         const frontmatterRegex = /^\s*---\s*\n(?:.*\n)*?---\s*\n/;
         return content.replace(frontmatterRegex, '');
     }
@@ -61,7 +61,7 @@ export class MarkdownPreprocessing {
         return content.slice(startIndex, endIndex).trim();
     }
 
-    private async processImageLinks(content: string): Promise<string> {
+    public async processImageLinks(content: string): Promise<string> {
         const regex = /!\[\[(.*?\.(?:png|jpe?g|gif|svg)(?:\.[\w]+)*)(?:\|[^\]]+)?\]\]/gi;
         const promises: Promise<string>[] = [];
 
@@ -99,7 +99,7 @@ export class MarkdownPreprocessing {
         return matchedFile ? matchedFile.path : null;
     }
 
-    private async processInternalLinks(content: string): Promise<string> {
+    public async processInternalLinks(content: string): Promise<string> {
         const regex = /\[\[([^\]]+)\]\]/g;
         const matches = Array.from(content.matchAll(regex));
         const replacements = await Promise.all(
@@ -147,7 +147,7 @@ export class MarkdownPreprocessing {
         return `**${linkText}**`;
     }
 
-    private async processCodeblocks(content: string): Promise<string> {
+    public async processCodeblocks(content: string): Promise<string> {
         const codeBlockRegex = /```\s*(\w*)\s*render\s*(.*?)\n([\s\S]*?)```/g;
         const matches = Array.from(content.matchAll(codeBlockRegex));
         
@@ -169,7 +169,7 @@ export class MarkdownPreprocessing {
         return `\`\`\`${language}\n${code}\n\`\`\``;
     }
 
-    private processObsidianSyntax(markdown: string): string {
+    public processObsidianSyntax(markdown: string): string {
         // Obsidian 특유의 문법 처리 (예: 내부 링크)
         return markdown.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
             const parts = p1.split('|');
