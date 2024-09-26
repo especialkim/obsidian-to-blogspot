@@ -59,7 +59,7 @@ export class BloggerService {
                 blogId: frontMatter.blogId || '',
                 blogUrl: frontMatter.blogUrl || '',
                 blogType: (frontMatter.blogType as 'post' | 'page') || 'post',
-                blogTitle: title, // Use the current title from the markdown
+                blogTitle: frontMatter.blogTitle || '', // Use the current title from the markdown
                 blogArticleId: frontMatter.blogArticleId,
                 blogArticleUrl: frontMatter.blogArticleUrl || '',
                 blogLabels: processedLabels.join(', '),
