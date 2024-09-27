@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "obsidian-to-blogspot",
+	"name": "Updates the current document to Blogspot or converts it to HTML.",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
+	"description": "This plugin allows you to update the current document to Blogspot or convert it to HTML format.",
+	"author": "Kim Yongmin(Lucy)",
+	"authorUrl": "https://x.com/Facilitate4U",
 	"fundingUrl": "https://obsidian.md/pricing",
 	"isDesktopOnly": false
 }
