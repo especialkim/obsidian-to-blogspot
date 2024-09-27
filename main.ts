@@ -50,8 +50,8 @@ export default class MyPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'publish-to-blogger',
-			name: 'Publish to Blogger',
+			id: 'publish-to-blogspot',
+			name: 'Publish to Blogspot',
 			callback: () => {
 				// Call the method in bloggerService to handle the publishing
 				const bloggerService = new BloggerService(this.settings, this.app.vault, this.app);
