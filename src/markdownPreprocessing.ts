@@ -100,6 +100,8 @@ export class MarkdownPreprocessing {
     }
 
     public async processInternalLinks(content: string): Promise<string> {
+        console.log("content", content)
+        
         const regex = /\[\[([^\]]+)\]\]/g;
         const matches = Array.from(content.matchAll(regex));
         const replacements = await Promise.all(
@@ -131,6 +133,8 @@ export class MarkdownPreprocessing {
             content = content.replace(match, replacement);
         });
 
+        console.log("result-content", content)
+
         return content;
     }
 
@@ -141,10 +145,10 @@ export class MarkdownPreprocessing {
             const metadata = this.app.metadataCache.getFileCache(file);
             const blogArticleUrl = metadata?.frontmatter?.blogArticleUrl;
             if (blogArticleUrl) {
-                return `**[${linkText}](${blogArticleUrl})**`;
+                return `[${linkText}](${blogArticleUrl})`;
             }
         }
-        return `**${linkText}**`;
+        return `${linkText}`;
     }
 
     public async processCodeblocks(content: string): Promise<string> {

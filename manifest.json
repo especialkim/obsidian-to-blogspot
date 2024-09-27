@@ -1,9 +1,9 @@
 {
 	"id": "obsidian-to-blogspot",
-	"name": "Updates the current document to Blogspot or converts it to HTML.",
+	"name": "Obsidian to Blogspot",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "This plugin allows you to update the current document to Blogspot or convert it to HTML format.",
+	"description": "Publish the current document to Blogspot or converts it to HTML.",
 	"author": "Kim Yongmin(Lucy)",
 	"authorUrl": "https://x.com/Facilitate4U",
 	"fundingUrl": "https://obsidian.md/pricing",

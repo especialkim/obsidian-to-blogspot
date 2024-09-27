@@ -164,6 +164,24 @@ export class BloggerService {
     }
 
     private async handleBloggerResponse(frontMatter: Record<string, string> | null, updatedSettings: PostSettings, content: string, accessToken: string) {
+
+        // Check if content already has an <h1> tag
+        if (!content.includes('<h1>')) {
+            let title = '';
+            
+            // Determine the title based on available information
+            if (frontMatter && frontMatter.blogTitle) {
+                title = frontMatter.blogTitle;
+            } else if (updatedSettings && updatedSettings.blogTitle) {
+                title = updatedSettings.blogTitle;
+            }
+
+            // If a title was found, prepend it to the content as an <h1>
+            if (title) {
+                content = `<h1>${title}</h1>\n\n${content}`;
+            }
+        }
+
         if (frontMatter === null || !updatedSettings.blogArticleId) {
             return await this.createNewBlogPostOrPage(updatedSettings, content, accessToken);
         } else {

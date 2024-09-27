@@ -47,7 +47,10 @@ export class MarkdownToHtml {
 		const fileContent = await this.app.vault.read(activeFile);
 		let { content, linkDataSet } = await this.markdownPreprocessing.preprocess(fileContent);
 
-		content = content.replace(/==([^=]+)==/g, '<mark>$1</mark>');
+		
+        content = content.replace(/==([^=]+)==/g, '<mark>$1</mark>');
+        content = content.replace(/(^|\s)#(?!#)(\S+)/g, '$1<span class="tag" onclick="setSearchQuery(this)">$2</span>');
+
 		content = this.convertLatexToHtml(content);
 
 		content = await CalloutToHtml.advancedProcess(content, this.markdownPreprocessing, this);
