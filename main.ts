@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Plugin, TFile } from 'obsidian';
 import { MyPluginSettings, DEFAULT_SETTINGS, SampleSettingTab } from './src/settings';
 import { GoogleOauth } from './src/googleOauth';
 import { MarkdownToHtml } from './src/markdownToHtml';
@@ -40,13 +40,13 @@ export default class MyPlugin extends Plugin {
 		this.addCommand({
 			id: 'markdown-to-html',
 			name: 'Markdown to HTML',
-			callback: () => this.markdownToHtml.convert(),
+			callback: () => this.markdownToHtml.convert(this.app.workspace.getActiveFile() as TFile),
 		});
 
 		this.addCommand({
 			id: 'make-links-data-set',
 			name: 'Make Links Data Set',
-			callback: () => this.makeLinkedDataSet.makeConnectionDataSet(),
+			callback: () => this.makeLinkedDataSet.makeConnectionDataSet(this.app.workspace.getActiveFile() as TFile),
 		});
 
 		this.addCommand({
@@ -55,7 +55,7 @@ export default class MyPlugin extends Plugin {
 			callback: () => {
 				// Call the method in bloggerService to handle the publishing
 				const bloggerService = new BloggerService(this.settings, this.app.vault, this.app);
-				bloggerService.publish();
+				bloggerService.publish(this.app.workspace.getActiveFile() as TFile);
 			},
 		});
 
@@ -65,7 +65,7 @@ export default class MyPlugin extends Plugin {
 			callback: () => {
 				// Call the method in bloggerService to handle the publishing
 				const bloggerService = new BloggerService(this.settings, this.app.vault, this.app);
-				bloggerService.publishQuickUpdate();
+				bloggerService.publishQuickUpdate(this.app.workspace.getActiveFile() as TFile);
 			},
 		});
 	}

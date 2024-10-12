@@ -29,7 +29,7 @@ export class MakeLinkedDataSet {
             ? uniqueLinks.filter(link => this.includePrefixes.some(prefix => link.startsWith(prefix)))
             : uniqueLinks;
 
-        // 3. 특정 확장자 링크 제거
+        // 4. 특정 확장자 링크 제거
         const extensionFilteredLinks = prefixFilteredLinks.filter(link => 
             !this.excludeExtensions.some(ext => link.endsWith(`.${ext}`))
         );
@@ -92,8 +92,7 @@ export class MakeLinkedDataSet {
         return filename.replace(/\.[^/.]+$/, "");
     }
 
-    makeConnectionDataSet(): LinkDataSet {
-        const file = this.app.workspace.getActiveFile();
+    makeConnectionDataSet(file: TFile): LinkDataSet {
         if (!file) {
             new Notice('No active file found.');
             return { backlinks: [], outlinks: [], labels: [], tags: [] };
@@ -103,29 +102,28 @@ export class MakeLinkedDataSet {
         const outlinks = this.getOutlinksFromCache(fileCache);
         const labels = this.getLabelsFromCache(fileCache);
         const tags = this.getTagsFromCache(fileCache);
+        
+        console.log({ backlinks, outlinks, labels, tags });
         return { backlinks, outlinks, labels, tags };
+    }
+
+    private createLinkHtml(filename: string, linkClass: string): string | null {
+        const file = this.app.vault.getAbstractFileByPath(filename);
+        if (!(file instanceof TFile)) return null;
+        const fileCache = this.app.metadataCache.getFileCache(file);
+        const blogArticleUrl = fileCache?.frontmatter?.blogArticleUrl;
+        const displayName = fileCache?.frontmatter?.blogTitle;
+        return blogArticleUrl ? `<a href="${blogArticleUrl}" class="${linkClass} hiddenlink hidden">${displayName}</a>` : null;
     }
 
     public linkedDataSetToHiddenLinksHtml(linkDataSet: LinkDataSet): string {
         const backlinksHtml = linkDataSet.backlinks
-            .map(filename => {
-                const file = this.app.vault.getAbstractFileByPath(filename);
-                if (!(file instanceof TFile)) return null;
-                const blogArticleUrl = this.app.metadataCache.getFileCache(file)?.frontmatter?.blogArticleUrl;
-                const displayName = this.removeExtension(file.name);
-                return blogArticleUrl ? `<a href="${blogArticleUrl}" class="backlink hiddenlink hidden">${displayName}</a>` : null;
-            })
+            .map(filename => this.createLinkHtml(filename, 'backlink'))
             .filter(link => link !== null)
             .join('\n');
 
         const outlinksHtml = linkDataSet.outlinks
-            .map(filename => {
-                const file = this.app.vault.getAbstractFileByPath(filename);
-                if (!(file instanceof TFile)) return null;
-                const blogArticleUrl = this.app.metadataCache.getFileCache(file)?.frontmatter?.blogArticleUrl;
-                const displayName = this.removeExtension(file.name);
-                return blogArticleUrl ? `<a href="${blogArticleUrl}" class="outlink hiddenlink hidden">${displayName}</a>` : null;
-            })
+            .map(filename => this.createLinkHtml(filename, 'outlink'))
             .filter(link => link !== null)
             .join('\n');
         

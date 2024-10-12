@@ -16,6 +16,7 @@ export interface HtmlBundle {
     labels: string[];
     tags: string[];
     hiddenLinks: string;
+    linkDataSet: LinkDataSet;
 }
 
 export interface BloggerFrontmatter {

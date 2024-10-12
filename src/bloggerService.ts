@@ -33,8 +33,7 @@ export class BloggerService {
         return tokenInfo.access_token;
     }
 
-    public async publishQuickUpdate(): Promise<void> {
-        const activeFile = this.app.workspace.getActiveFile();
+    public async publishQuickUpdate(activeFile: TFile, isOpenUrl: boolean = true, isRecursive: boolean = false): Promise<void> {
         if (!activeFile) {
             new Notice('No active file');
             return;
@@ -42,17 +41,20 @@ export class BloggerService {
     
         try {
             const accessToken = await this.getAccessToken();
-            const htmlBundle = await this.markdownToHtml.markdownToHtmlBundle();
+            const htmlBundle = await this.markdownToHtml.markdownToHtmlBundle(activeFile);
     
-            const { title, content, labels, tags } = this.extractContentData(htmlBundle);
-            const processedLabels = this.processLabels(labels, tags);
-    
+            const { content, labels, tags } = this.extractContentData(htmlBundle);
+            
             const frontMatter = await this.getFrontMatter(activeFile);
             if (!frontMatter || !frontMatter.blogArticleId) {
                 new Notice('No existing blog post found. Please use full publish for the first time.');
                 return;
             }
-    
+            
+            const frontmatterLabels = frontMatter?.blogLabels?.split(',').map(label => label.trim()) || [];
+            const combinedLabels = [...new Set([...labels, ...frontmatterLabels])];
+            const processedLabels = this.processLabels(combinedLabels, tags);
+
             // Use existing frontmatter data instead of opening a modal
             const updatedSettings: PostSettings = {
                 blogAlias: frontMatter.blogAlias || '',
@@ -73,8 +75,11 @@ export class BloggerService {
             const newFrontmatter = this.makeFrontmatterData(bloggerResponse, updatedSettings.blogAlias, updatedSettings.blogType);
             await updateFrontmatter(activeFile, this.vault, newFrontmatter);
     
-            new Notice('Quick update completed successfully.');
-            await this.handlePostPublish(bloggerResponse);
+            await this.handlePostPublish(bloggerResponse, isOpenUrl);
+
+            if (!isRecursive) {
+                await this.updateLinkedFiles(htmlBundle.linkDataSet);
+            }
     
         } catch (error) {
             console.error('Error quick updating to Blogspot:', error);
@@ -82,8 +87,21 @@ export class BloggerService {
         }
     }
 
-    public async publish(): Promise<void> {
-        const activeFile = this.app.workspace.getActiveFile();
+    private async updateLinkedFiles(linkDataSet: any): Promise<void> {
+        const { backlinks, outlinks } = linkDataSet;
+        const allLinks = [...new Set([...backlinks, ...outlinks])];
+
+        for (const link of allLinks) {
+            const linkedFile = this.app.vault.getAbstractFileByPath(link);
+            if (linkedFile instanceof TFile) {
+                await this.publishQuickUpdate(linkedFile, false, true);
+                // Add a delay of 1 second between updates
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+    }
+
+    public async publish(activeFile: TFile): Promise<void> {
         if (!activeFile) {
             new Notice('No active file');
             return;
@@ -91,7 +109,7 @@ export class BloggerService {
 
         try {
             const accessToken = await this.getAccessToken();
-            const htmlBundle = await this.markdownToHtml.markdownToHtmlBundle();
+            const htmlBundle = await this.markdownToHtml.markdownToHtmlBundle(activeFile);
 
             const { title, content, labels, tags } = this.extractContentData(htmlBundle);
             const processedLabels = this.processLabels(labels, tags);
@@ -113,6 +131,8 @@ export class BloggerService {
             new Notice('Upload completed successfully.');
             await this.handlePostPublish(bloggerResponse);
 
+            await this.updateLinkedFiles(htmlBundle.linkDataSet);
+
         } catch (error) {
             console.error('Error publishing to Blogspot:', error);
             new Notice('Error publishing to Blogspot. Check console for details.');
@@ -128,11 +148,14 @@ export class BloggerService {
     }
 
     private processLabels(labels: string[], tags: string[]): string[] {
+        let processedLabels: string[];
         if (!this.settings.useOutlinksForLabels) {
-            return tags.map(tag => tag.replace("#", ''));
+            processedLabels = tags.map(tag => tag.replace("#", ''));
         } else {
-            return labels.map(label => label.replace(this.settings.labelPrefixes + ' ', ''));
+            processedLabels = labels.map(label => label.replace(this.settings.labelPrefixes + ' ', ''));
         }
+        // Remove duplicates using Set and convert back to array
+        return [...new Set(processedLabels)];
     }
 
     private initializeFrontMatter(frontMatter: Record<string, string> | null, title: string, labels: string[]): PostSettings {
@@ -233,8 +256,8 @@ export class BloggerService {
         throw new Error('Unsupported blog type');
     }
 
-    private async handlePostPublish(bloggerResponse: any) {
-        if (this.settings.openBrowserAfterPublish) {
+    private async handlePostPublish(bloggerResponse: any, isOpenUrl: boolean = true) {
+        if (this.settings.openBrowserAfterPublish && isOpenUrl) {
             if (bloggerResponse.url) {
                 const { shell } = require('electron');
                 shell.openExternal(bloggerResponse.url);
@@ -242,6 +265,8 @@ export class BloggerService {
             } else {
                 new Notice('Unable to open post: URL not available.');
             }
+        } else {
+            new Notice('Additional posts published successfully.');
         }
     }
 

@@ -4,7 +4,7 @@ import { ImgurService } from './imgurService';
 import { MermaidService } from './mermaidService';
 import { D2Service } from './d2Service';
 import { MakeLinkedDataSet } from './makeLinkedDataSet';
-import { LinkDataSet, PreprocessResult } from './types';
+import { LinkDataSet } from './types';
 
 export class MarkdownPreprocessing {
     private imgurService: ImgurService; // Add this line
@@ -22,14 +22,14 @@ export class MarkdownPreprocessing {
         this.makeLinkedDataSet = new MakeLinkedDataSet(this.app, this.settings);
     }
 
-    async preprocess(content: string): Promise<{ content: string; linkDataSet: LinkDataSet }> {
+    async preprocess(content: string, activeFile: TFile): Promise<{ content: string; linkDataSet: LinkDataSet }> {
         content = this.removeFrontmatter(content);
         content = this.trimContent(content);
         content = await this.processImageLinks(content);
         content = await this.processInternalLinks(content);
         content = await this.processCodeblocks(content);
         content = this.processObsidianSyntax(content);
-        const linkDataSet = this.makeLinkedDataSet.makeConnectionDataSet();
+        const linkDataSet = this.makeLinkedDataSet.makeConnectionDataSet(activeFile);
         return { content, linkDataSet };
     }
 
@@ -100,8 +100,6 @@ export class MarkdownPreprocessing {
     }
 
     public async processInternalLinks(content: string): Promise<string> {
-        console.log("content", content)
-        
         const regex = /\[\[([^\]]+)\]\]/g;
         const matches = Array.from(content.matchAll(regex));
         const replacements = await Promise.all(
@@ -133,8 +131,6 @@ export class MarkdownPreprocessing {
             content = content.replace(match, replacement);
         });
 
-        console.log("result-content", content)
-
         return content;
     }
 
@@ -144,8 +140,9 @@ export class MarkdownPreprocessing {
         if (file instanceof TFile) {
             const metadata = this.app.metadataCache.getFileCache(file);
             const blogArticleUrl = metadata?.frontmatter?.blogArticleUrl;
+            const blogTitle = metadata?.frontmatter?.blogTitle;
             if (blogArticleUrl) {
-                return `[${linkText}](${blogArticleUrl})`;
+                return `[${blogTitle}](${blogArticleUrl})`;
             }
         }
         return `${linkText}`;

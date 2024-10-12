@@ -23,8 +23,6 @@ export class CalloutToHtml {
                 .join('\n')
                 .replace(/\n{2,}/g, '\n\n'); // Ensure that multiple newlines are preserved
             
-            console.log(content);
-
             // Apply markdown preprocessing
             content = await markdownPreprocessing.processImageLinks(content);
             content = await markdownPreprocessing.processInternalLinks(content);

@@ -20,8 +20,8 @@ export class MarkdownToHtml {
 		this.includeCssInPublish = this.settings.includeCssInPublish;
 	}
 
-	async convert() {
-		const bundle = await this.markdownToHtmlBundle();
+	async convert(activeFile: TFile) {
+		const bundle = await this.markdownToHtmlBundle(activeFile);
 		let content = bundle.content;
 		const hiddenLinks = bundle.hiddenLinks;
 
@@ -31,23 +31,21 @@ export class MarkdownToHtml {
 			content += hiddenLinks;
 		}
 		
-		const html = await this.makeHtmlDocument(content);
+		const html = await this.makeHtmlDocument(content, activeFile);
 		const fileName = await this.createHtmlFile(html);
 		await this.openHtmlFile(fileName);
 	}
 
-	async markdownToHtmlBundle(): Promise<HtmlBundle> {
-		const activeFile = this.app.workspace.getActiveFile();
+	async markdownToHtmlBundle(activeFile: TFile): Promise<HtmlBundle> {
 
         if (!activeFile) {
             new Notice('No active file found.');
-			return { title: '', content: '', labels: [], tags: [], hiddenLinks: ''}; 
+			return { title: '', content: '', labels: [], tags: [], hiddenLinks: '', linkDataSet: {backlinks: [], outlinks: [], labels: [], tags: []}}; 
 		}
 
 		const fileContent = await this.app.vault.read(activeFile);
-		let { content, linkDataSet } = await this.markdownPreprocessing.preprocess(fileContent);
+		let { content, linkDataSet } = await this.markdownPreprocessing.preprocess(fileContent, activeFile);
 
-		
         content = content.replace(/==([^=]+)==/g, '<mark>$1</mark>');
         content = content.replace(/(^|\s)#(?!#)(\S+)/g, '$1<span class="tag" onclick="setSearchQuery(this)">$2</span>');
 
@@ -74,7 +72,7 @@ export class MarkdownToHtml {
 		if (this.settings.makeLinksDataSet){
 			content = content + hiddenLinks;
 		}
-		return {title, content, labels, tags, hiddenLinks};
+		return {title, content, labels, tags, hiddenLinks, linkDataSet};
 	}
 
 	public async convertToHtml(markdown: string): Promise<string> {
@@ -118,8 +116,7 @@ export class MarkdownToHtml {
 		return content.replace(/<p>\s*(<img[^>]+>)\s*<\/p>/g, '$1');
 	}
 
-	private async makeHtmlDocument(htmlBody: string): Promise<string> {
-		const activeFile = this.app.workspace.getActiveFile();
+	private async makeHtmlDocument(htmlBody: string, activeFile: TFile): Promise<string> {
 		const title = activeFile ? activeFile.name : 'Document';
 
 		return `
