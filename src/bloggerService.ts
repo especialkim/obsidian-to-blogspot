@@ -44,13 +44,12 @@ export class BloggerService {
             const htmlBundle = await this.markdownToHtml.markdownToHtmlBundle(activeFile);
     
             const { content, labels, tags } = this.extractContentData(htmlBundle);
-            
+
             const frontMatter = await this.getFrontMatter(activeFile);
             if (!frontMatter || !frontMatter.blogArticleId) {
                 new Notice('No existing blog post found. Please use full publish for the first time.');
                 return;
             }
-            
             const frontmatterLabels = frontMatter?.blogLabels?.split(',').map(label => label.trim()) || [];
             const combinedLabels = [...new Set([...labels, ...frontmatterLabels])];
             const processedLabels = this.processLabels(combinedLabels, tags);
@@ -87,10 +86,21 @@ export class BloggerService {
         }
     }
 
+    private getPathFromFileName(filename: string): string {
+        // 볼트의 모든 파일을 가져옵니다
+        const files = this.app.vault.getFiles();
+        // 주어진 파일명과 일치하는 파일을 찾습니다
+        const file = files.find((file: TFile) => file.name === filename);
+        // 파일을 찾으면 경로를 반환하고, 찾지 못하면 null을 반환합니다
+        return file ? file.path : "";
+    }
+
     private async updateLinkedFiles(linkDataSet: any): Promise<void> {
         const { backlinks, outlinks } = linkDataSet;
-        const allLinks = [...new Set([...backlinks, ...outlinks])];
+        let allLinks = [...new Set([...backlinks, ...outlinks])];
 
+        allLinks = allLinks.map(link => this.getPathFromFileName(link));
+        
         for (const link of allLinks) {
             const linkedFile = this.app.vault.getAbstractFileByPath(link);
             if (linkedFile instanceof TFile) {
@@ -115,6 +125,7 @@ export class BloggerService {
             const processedLabels = this.processLabels(labels, tags);
 
             const frontMatter = await this.getFrontMatter(activeFile);
+
             const initialModalData = this.initializeFrontMatter(frontMatter, title, processedLabels);
 
             const updatedSettings = await this.openPostSettingsModal(initialModalData);
@@ -131,6 +142,7 @@ export class BloggerService {
             new Notice('Upload completed successfully.');
             await this.handlePostPublish(bloggerResponse);
 
+            console.log('htmlBundle.linkDataSet', htmlBundle.linkDataSet);
             await this.updateLinkedFiles(htmlBundle.linkDataSet);
 
         } catch (error) {

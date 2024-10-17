@@ -69,6 +69,8 @@ export class MarkdownToHtml {
 		const makeLinkedDataSet = new MakeLinkedDataSet(this.app, this.settings);
 		const hiddenLinks = makeLinkedDataSet.linkedDataSetToHiddenLinksHtml(linkDataSet);
 
+
+
 		if (this.settings.makeLinksDataSet){
 			content = content + hiddenLinks;
 		}

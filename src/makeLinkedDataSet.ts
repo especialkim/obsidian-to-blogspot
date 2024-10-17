@@ -22,7 +22,12 @@ export class MakeLinkedDataSet {
 
     private filterLinks(links: string[]): string[] {
         // 1. 중복 제거
-        const uniqueLinks = Array.from(new Set(links));
+        let uniqueLinks = Array.from(new Set(links));
+        
+        uniqueLinks = uniqueLinks.map(link => {
+            const lastSlashIndex = link.lastIndexOf('/');
+            return lastSlashIndex !== -1 ? link.slice(lastSlashIndex + 1) : link;
+        });
 
         // 2. 특정 prefix로 시작하는 링크만 선택
         const prefixFilteredLinks = this.includePrefixes.length > 0
@@ -103,17 +108,31 @@ export class MakeLinkedDataSet {
         const labels = this.getLabelsFromCache(fileCache);
         const tags = this.getTagsFromCache(fileCache);
         
-        console.log({ backlinks, outlinks, labels, tags });
         return { backlinks, outlinks, labels, tags };
     }
 
     private createLinkHtml(filename: string, linkClass: string): string | null {
-        const file = this.app.vault.getAbstractFileByPath(filename);
+        const path = this.getPathFromFileName(filename);
+        const file = this.app.vault.getAbstractFileByPath(path);
+
         if (!(file instanceof TFile)) return null;
+        
         const fileCache = this.app.metadataCache.getFileCache(file);
+
         const blogArticleUrl = fileCache?.frontmatter?.blogArticleUrl;
         const displayName = fileCache?.frontmatter?.blogTitle;
         return blogArticleUrl ? `<a href="${blogArticleUrl}" class="${linkClass} hiddenlink hidden">${displayName}</a>` : null;
+    }
+
+    private getPathFromFileName(filename: string): string {
+        // 볼트의 모든 파일을 가져옵니다
+        const files = this.app.vault.getFiles();
+        
+        // 주어진 파일명과 일치하는 파일을 찾습니다
+        const file = files.find((file: TFile) => file.name === filename);
+        
+        // 파일을 찾으면 경로를 반환하고, 찾지 못하면 null을 반환합니다
+        return file ? file.path : "";
     }
 
     public linkedDataSetToHiddenLinksHtml(linkDataSet: LinkDataSet): string {
@@ -126,7 +145,8 @@ export class MakeLinkedDataSet {
             .map(filename => this.createLinkHtml(filename, 'outlink'))
             .filter(link => link !== null)
             .join('\n');
-        
+
+
         const relatedLinksHeading = '<h2 class="hidden link-heading">Related Links</h2>\n';
         const backlinksHeading = '<h3 class="hidden link-heading">Backlinks</h3>\n';
         const outlinksHeading = '<h3 class="hidden link-heading">Outlinks</h3>\n';
@@ -142,6 +162,8 @@ export class MakeLinkedDataSet {
         if (outlinksHtml) {
             sections.push(outlinksHeading + outlinksHtml);
         }
+
+        
         return sections.join('');
     }
 
